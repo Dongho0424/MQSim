@@ -1,3 +1,5 @@
 MQSim
 build/
 
+.DS_Store
+.vscode/

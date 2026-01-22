@@ -2,9 +2,10 @@
 
 MQSim is a simulator that accurately captures the behavior of both modern multi-queue SSDs and conventional SATA-based SSDs. MQSim faithfully models a number of critical features absent in existing state-of-the-art simulators, including (1) modern multi-queue-based host–interface protocols (e.g., NVMe), (2) the steady-state behavior of SSDs, and (3) the end-to-end latency of I/O requests. MQSim can be run as a standalone tool, or integrated with a full-system simulator.
 
-The full paper is published in FAST 2018 and is available online at https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18.pdf  
+The full paper is published in FAST 2018 and is available online at https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18.pdf
 
 ## Citation
+
 Please cite our full FAST 2018 paper if you find this repository useful.
 
 > Arash Tavakkol, Juan Gomez-Luna, Mohammad Sadrosadati, Saugata Ghose, and Onur Mutlu, [`"MQSim: A Framework for Enabling Realistic Studies of Modern Multi-Queue SSD Devices"`](https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18.pdf) Proceedings of the 16th USENIX Conference on File and Storage Technologies (FAST), Oakland, CA, USA, February 2018.
@@ -17,16 +18,18 @@ Please cite our full FAST 2018 paper if you find this repository useful.
   year={2018}
 }
 ```
+
 ## Additional Resources
 
 To learn more about MQSim, please refer to the slides and talk below:
 
- - Slides: [`(pptx)`](https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18-talk.pptx) [`(pdf)`](https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18-talk.pdf)
-  - Talk: [`Introduction to MQSim`](http://www.youtube.com/watch?v=d40ekgmjM98) from the [`Understanding and Designing Modern NAND Flash-Based Solid-State Drives (SSDs)`](https://safari.ethz.ch/projects_and_seminars/spring2022/doku.php?id=modern_ssds) course
+- Slides: [`(pptx)`](https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18-talk.pptx) [`(pdf)`](https://people.inf.ethz.ch/omutlu/pub/MQSim-SSD-simulation-framework_fast18-talk.pdf)
+- Talk: [`Introduction to MQSim`](http://www.youtube.com/watch?v=d40ekgmjM98) from the [`Understanding and Designing Modern NAND Flash-Based Solid-State Drives (SSDs)`](https://safari.ethz.ch/projects_and_seminars/spring2022/doku.php?id=modern_ssds) course
 
 ## Usage in Linux
+
 Run following commands:
-	
+
 ```
 $ make
 $ ./MQSim -i <SSD Configuration File> -w <Workload Definition File>
@@ -42,14 +45,15 @@ $ ./MQSim -i <SSD Configuration File> -w <Workload Definition File>
 Example command line execution:
 
 ```
-$ MQSim.exe -i <SSD Configuration File> -w <Workload Definition File> 
+$ MQSim.exe -i <SSD Configuration File> -w <Workload Definition File>
 ```
 
-## MQSim Execution Configurations 
+## MQSim Execution Configurations
 
 You can specify your preferred SSD configuration in the XML format. If the SSD configuration file specified in the command line does not exist, MQSim will create a sample XML file in the specified path. Here are the definitions of configuration parameters available in the XML file:
 
 ### Host
+
 1. **PCIe_Lane_Bandwidth:** the PCIe bandwidth per lane in GB/s. Range = {all positive double precision values}.
 2. **PCIe_Lane_Count:** the number of PCIe lanes. Range = {all positive integer values}.
 3. **SATA_Processing_Delay:** defines the aggregate hardware and software processing delay to send/receive a SATA message to the SSD device in nanoseconds. Range = {all positive integer values}.
@@ -57,6 +61,7 @@ You can specify your preferred SSD configuration in the XML format. If the SSD c
 5. **ResponseTime_Logging_Period_Length:** defines the epoch length for response time logging in nanoseconds. Range = {all positive integer values}.
 
 ### SSD Device
+
 1. **Seed:** the seed value that is used for random number generation. Range = {all positive integer values}.
 2. **Enabled_Preconditioning:** the toggle to enable preconditioning. Range = {true, false}.
 3. **Memory_Type:** the type of the non-volatile memory used for data storage. Range = {FLASH}.
@@ -80,7 +85,7 @@ You can specify your preferred SSD configuration in the XML format. If the SSD c
 21. **Transaction_Scheduling_Policy:** the transaction scheduling policy that is used in the SSD back end. Range = {OUT_OF_ORDER as defined in the Sprinkler paper [2], PRIORITY_OUT_OF_ORDER which implements OUT_OF_ORDER and NVMe priorities}.
 22. **Overprovisioning_Ratio:** the ratio of reserved storage space with respect to the available flash storage capacity. Range = {all positive double precision values}.
 23. **GC_Exect_Threshold:** the threshold for starting Garbage Collection (GC). When the ratio of the free physical pages for a plane drops below this threshold, GC execution begins. Range = {all positive double precision values}.
-24. **GC_Block_Selection_Policy:** the GC block selection policy. Range {GREEDY, RGA *(described in [4] and [5])*, RANDOM *(described in [4])*, RANDOM_P *(described in [4])*, RANDOM_PP *(described in [4])*, FIFO *(described in [6])*}.
+24. **GC_Block_Selection_Policy:** the GC block selection policy. Range {GREEDY, RGA _(described in [4] and [5])_, RANDOM _(described in [4])_, RANDOM*P *(described in [4])_, RANDOM_PP _(described in [4])_, FIFO _(described in [6])\_}.
 25. **Use_Copyback_for_GC:** used in GC_and_WL_Unit_Page_Level to determine block_manager→Is_page_valid gc_write transaction
 26. **Preemptible_GC_Enabled:** the toggle to enable pre-emptible GC (described in [7]). Range = {true, false}.
 27. **GC_Hard_Threshold:** the threshold to stop pre-emptible GC execution (described in [7]). Range = {all possible positive double precision values less than GC_Exect_Threshold}.
@@ -97,6 +102,7 @@ You can specify your preferred SSD configuration in the XML format. If the SSD c
 38. **Flash_Comm_Protocol:** the Open NAND Flash Interface (ONFI) protocol used for data transfer over flash channels in the SSD back end. Range = {NVDDR2}.
 
 ### NAND Flash
+
 1. **Flash_Technology:** Range = {SLC, MLC, TLC}.
 2. **CMD_Suspension_Support:** the type of suspend command support by flash chips. Range = {NONE, PROGRAM, PROGRAM_ERASE, ERASE}.
 3. **Page_Read_Latency_LSB:** the latency of reading LSB bits of flash memory cells in nanoseconds. Range = {all positive integer values}.
@@ -116,13 +122,14 @@ You can specify your preferred SSD configuration in the XML format. If the SSD c
 17. **Page_Capacity:** the size of each physical flash page in bytes. Range = {all positive integer values}.
 18. **Page_Metadat_Capacity:** the size of the metadata area of each physical flash page in bytes. Range = {all positive integer values}.
 
-
 ## MQSim Workload Definition
+
 You can define your preferred set of workloads in the XML format. If the specified workload definition file does not exist, MQSim will create a sample workload definition file in XML format for you (i.e., workload.xml). Here is the explanation of the XML attributes and tags for the workload definition file:
 
-1. The entire workload definitions should be embedded within <MQSim_IO_Scenarios></MQSim_IO_Scenarios> tags. You can define different sets of *I/O scenarios* within these tags. MQSim simulates each I/O scenario separately.
+1. The entire workload definitions should be embedded within <MQSim*IO_Scenarios></MQSim_IO_Scenarios> tags. You can define different sets of \_I/O scenarios* within these tags. MQSim simulates each I/O scenario separately.
 
-2. We call a set of workloads that should be executed together, an *I/O scenario*. An I/O scenario is defined within the <IO_Scenario></IO_Scenario> tags. For example, two different I/O scenarios are defined in the workload definition file in the following way:
+2. We call a set of workloads that should be executed together, an _I/O scenario_. An I/O scenario is defined within the <IO_Scenario></IO_Scenario> tags. For example, two different I/O scenarios are defined in the workload definition file in the following way:
+
 ```
 <MQSim_IO_Scenarios>
 	<IO_Scenario>
@@ -139,10 +146,12 @@ For each I/O scenario, MQSim 1) rebuilds the Host and SSD Drive model and execut
 You can define up to 8 different workloads within each IO_Scenario tag. Each workload could either be a disk trace file that has already been collected on a real system or a synthetic stream of I/O requests that are generated by MQSim's request generator.
 
 ### Defining a Trace-based Workload
+
 You can define a trace-based workload for MQSim, using the <IO_Flow_Parameter_Set_Trace_Based> XML tag. Currently, MQSim can execute ASCII disk traces define in [8] in which each line of the trace file has the following format:
 1.Request_Arrival_Time 2.Device_Number 3.Starting_Logical_Sector_Address 4.Request_Size_In_Sectors 5.Type_of_Requests[0 for write, 1 for read]
 
 The following parameters are used to define a trace-based workload:
+
 1. **Priority_Class:** the priority class of the I/O queue associated with this I/O request. Range = {URGENT, HIGH, MEDIUM, LOW}.
 2. **Device_Level_Data_Caching_Mode:** the type of on-device data caching for this flow. Range={WRITE_CACHE, READ_CACHE, WRITE_READ_CACHE, TURNED_OFF}. If the caching mechanism mentioned above is set to SIMPLE, then only WRITE_CACHE and TURNED_OFF modes could be used.
 3. **Channel_IDs:** a comma-separated list of channel IDs that are allocated to this workload. This list is used for resource partitioning. If there are C channels in the SSD (defined in the SSD configuration file), then the channel ID list should include values in the range 0 to C-1. If no resource partitioning is required, then all workloads should have channel IDs 0 to C-1.
@@ -156,9 +165,11 @@ The following parameters are used to define a trace-based workload:
 11. **Time_Unit:** the unit of arrival times in the input trace file. Range = {PICOSECOND, NANOSECOND, MICROSECOND}
 
 ### Defining a Synthetic Workload
-You can define a synthetic workload for MQSim, using the <IO_Flow_Parameter_Set_Synthetic> XML tag. 
+
+You can define a synthetic workload for MQSim, using the <IO_Flow_Parameter_Set_Synthetic> XML tag.
 
 The following parameters are used to define a trace-based workload:
+
 1. **Priority_Class:** same as trace-based parameters mentioned above.
 2. **Device_Level_Data_Caching_Mode:** same as trace-based parameters mentioned above.
 3. **Channel_IDs:** same as trace-based parameters mentioned above.
@@ -182,16 +193,19 @@ The following parameters are used to define a trace-based workload:
 21. **Stop_Time:** defines when to stop generating I/O requests in nanoseconds.
 22. **Total_Requests_To_Generate:** if Stop_Time is set to zero, then MQSim's request generator considers Total_Requests_To_Generate to decide when to stop generating I/O requests.
 
-
 ## Analyze MQSim's XML Output
+
 You can use an XML processor to easily read and analyze an MQSim output file. For example, you can open an MQSim output file in MS Excel. Then, MS Excel shows a set of options and you should choose "Use the XML Source task pane". The XML file is processed in MS Excel and a task pane is shown with all output parameters listed in it. In the task pane on the right, you see different types of statistics available in the MQSim's output file. To read the value of a parameter, you should:<br />
+
 1. Drag and drop that parameter from the task source pane to the Excel sheet.,<br />
-2. Right click on the cell that you have dropped the parameter and select *XML* > *Refresh XML Data* from the drop-down menue.
+2. Right click on the cell that you have dropped the parameter and select _XML_ > _Refresh XML Data_ from the drop-down menue.
 
 The parameters used to define the output file of the simulator are divided into categories:
 
 ### Host
+
 For each defined IO_Flow, the following parameters are shown:
+
 1. **Name:** The name of the IO flow, e.g. Host.IO_Flow.Synth.No_0
 2. **Request_Count:** The total number of requests from this IO_flow.
 3. **Read_Request_Count:** The total number of read requests from this IO_flow.
@@ -206,26 +220,28 @@ For each defined IO_Flow, the following parameters are shown:
 12. **Bandwidth_Read:** The total read bandwidth delivered by the SSD Device in bytes per second.
 13. **Bandwidth_Write:** The total write bandwidth delivered by the SSD Device in bytes per second.
 14. **Device_Response_Time:** The average SSD device response time for a request, in nanoseconds. This is defined as the time between enqueueing the request in the I/O submission queue, and removing it from the I/O completion queue.
-15. **Min_Device_Response_Time:** The minimum SSD device response time for a request, in nanoseconds. 
+15. **Min_Device_Response_Time:** The minimum SSD device response time for a request, in nanoseconds.
 16. **Max_Device_Response_Time:** The maximum SSD device response time for a request, in nanoseconds.
 17. **End_to_End_Request_Delay:** The average delay between generating an I/O request and receiving a corresponding answer. This is defined as the difference between the request arrival time, and its removal time from the I/O completion queue. Note that the request arrival_time is the same as the request enqueue_time, when using the multi-queue properties of NVMe drives.
 18. **Min_End_to_End_Request_Delay:** The minimum end-to-end request delay.
 19. **Max_End_to_End_Request_Delay:** The maximum end-to-end request delay.
 
 ### SSDDevice
+
 The output parameters in the SSDDevice category contain values for:
+
 1. Average transaction times at a lower abstraction level (SSDDevice.IO_Stream)
 2. Statistics for the flash transaction layer (FTL)
 3. Statistics for each queue in the SSD's internal flash Transaction Scheduling Unit (TSU): In the TSU exists a User_Read_TR_Queue, a User_Write_TR_Queue, a Mapping_Read_TR_Queue, a Mapping_Write_TR_Queue, a GC_Read_TR_Queue, a GC_Write_TR_queue, a GC_Erase_TR_Queue for each combination of channel and package.
 4. For each package: the fraction of time in the exclusive memory command execution, exclusive data transfer, overlapped memory command execution and data transfer, and idle mode.
 
-
 ## References
+
 [1] A. Tavakkol et al., "MQSim: A Framework for Enabling Realistic Studies of Modern Multi-Queue SSD Devices," FAST, pp. 49 - 66, 2018.
 
 [2] M. Jung and M. T. Kandemir, "Sprinkler: Maximizing Resource Utilization in Many-chip Solid State Disks," HPCA, pp. 524-535, 2014.
 
-[3] A. Tavakkol  et al., "Performance Evaluation of Dynamic Page Allocation Strategies in SSDs," ACM TOMPECS, pp. 7:1--7:33, 2016.
+[3] A. Tavakkol et al., "Performance Evaluation of Dynamic Page Allocation Strategies in SSDs," ACM TOMPECS, pp. 7:1--7:33, 2016.
 
 [4] B. Van Houdt, "A Mean Field Model for a Class of Garbage Collection Algorithms in Flash-based Solid State Drives," SIGMETRICS, pp. 191-202, 2013.
 
