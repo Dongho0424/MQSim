@@ -6,9 +6,10 @@ namespace SSD_Components
                                                            bool ideal_mapping_table, unsigned int concurrent_streams_no,
                                                            unsigned int channel_count, unsigned int chip_no_per_channel, unsigned int die_no_per_chip, unsigned int plane_no_in_die,
                                                            unsigned int block_no_per_plane, unsigned int page_no_per_block, unsigned int sectors_per_page, unsigned int page_size_in_byte,
-                                                           double overprovisioning_ratio, CMT_Sharing_Mode sharing_mode, bool fold_out_of_range_addresses) : Address_Mapping_Unit_Base(id, ftl, flash_controller, block_manager, ideal_mapping_table,
-                                                                                                                                                                                       concurrent_streams_no, channel_count, chip_no_per_channel, die_no_per_chip, plane_no_in_die,
-                                                                                                                                                                                       block_no_per_plane, page_no_per_block, sectors_per_page, page_size_in_byte, overprovisioning_ratio, sharing_mode, fold_out_of_range_addresses) {}
+                                                           double overprovisioning_ratio, CMT_Sharing_Mode sharing_mode, bool fold_out_of_range_addresses)
+      : Address_Mapping_Unit_Base(id, ftl, flash_controller, block_manager, ideal_mapping_table,
+                                  concurrent_streams_no, channel_count, chip_no_per_channel, die_no_per_chip, plane_no_in_die,
+                                  block_no_per_plane, page_no_per_block, sectors_per_page, page_size_in_byte, overprovisioning_ratio, sharing_mode, fold_out_of_range_addresses) {}
   void Address_Mapping_Unit_Hybrid::Setup_triggers() {}
   void Address_Mapping_Unit_Hybrid::Start_simulation() {}
   void Address_Mapping_Unit_Hybrid::Validate_simulation_config() {}

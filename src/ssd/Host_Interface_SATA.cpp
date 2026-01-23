@@ -15,7 +15,8 @@ namespace SSD_Components
   }
 
   Input_Stream_Manager_SATA::Input_Stream_Manager_SATA(Host_Interface_Base *host_interface, uint16_t ncq_depth,
-                                                       LHA_type start_logical_sector_address, LHA_type end_logical_sector_address) : ncq_depth(ncq_depth), Input_Stream_Manager_Base(host_interface)
+                                                       LHA_type start_logical_sector_address, LHA_type end_logical_sector_address)
+      : ncq_depth(ncq_depth), Input_Stream_Manager_Base(host_interface)
   {
     if (end_logical_sector_address < start_logical_sector_address)
     {

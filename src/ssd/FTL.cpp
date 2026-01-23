@@ -17,11 +17,12 @@ namespace SSD_Components
            unsigned int channel_no, unsigned int chip_no_per_channel, unsigned int die_no_per_chip, unsigned int plane_no_per_die,
            unsigned int block_no_per_plane, unsigned int page_no_per_block, unsigned int page_size_in_sectors,
            sim_time_type avg_flash_read_latency, sim_time_type avg_flash_program_latency,
-           double over_provisioning_ratio, unsigned int max_allowed_block_erase_count, int seed) : NVM_Firmware(id, data_cache_manager), random_generator(seed),
-                                                                                                   channel_no(channel_no), chip_no_per_channel(chip_no_per_channel), die_no_per_chip(die_no_per_chip), plane_no_per_die(plane_no_per_die),
-                                                                                                   block_no_per_plane(block_no_per_plane), page_no_per_block(page_no_per_block), page_size_in_sectors(page_size_in_sectors),
-                                                                                                   avg_flash_read_latency(avg_flash_read_latency), avg_flash_program_latency(avg_flash_program_latency),
-                                                                                                   over_provisioning_ratio(over_provisioning_ratio), max_allowed_block_erase_count(max_allowed_block_erase_count)
+           double over_provisioning_ratio, unsigned int max_allowed_block_erase_count, int seed)
+      : NVM_Firmware(id, data_cache_manager), random_generator(seed),
+        channel_no(channel_no), chip_no_per_channel(chip_no_per_channel), die_no_per_chip(die_no_per_chip), plane_no_per_die(plane_no_per_die),
+        block_no_per_plane(block_no_per_plane), page_no_per_block(page_no_per_block), page_size_in_sectors(page_size_in_sectors),
+        avg_flash_read_latency(avg_flash_read_latency), avg_flash_program_latency(avg_flash_program_latency),
+        over_provisioning_ratio(over_provisioning_ratio), max_allowed_block_erase_count(max_allowed_block_erase_count)
   {
     Stats::Init_stats(channel_no, chip_no_per_channel, die_no_per_chip, plane_no_per_die, block_no_per_plane, page_no_per_block, max_allowed_block_erase_count);
   }

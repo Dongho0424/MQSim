@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <MQSim_IO_Scenarios>
-	<IO_Scenario>
+	<!-- <IO_Scenario>
 		<IO_Flow_Parameter_Set_Synthetic>
 			<Priority_Class>HIGH</Priority_Class>
 			<Device_Level_Data_Caching_Mode>WRITE_CACHE</Device_Level_Data_Caching_Mode>
@@ -49,7 +49,7 @@
 			<Stop_Time>10000000000</Stop_Time>
 			<Total_Requests_To_Generate>0</Total_Requests_To_Generate>
 		</IO_Flow_Parameter_Set_Synthetic>
-	</IO_Scenario>
+	</IO_Scenario> -->
 
 	<IO_Scenario>
 		<IO_Flow_Parameter_Set_Synthetic>
@@ -101,6 +101,7 @@
 			<Total_Requests_To_Generate>0</Total_Requests_To_Generate>
 		</IO_Flow_Parameter_Set_Synthetic>
 	</IO_Scenario>
+
 	<IO_Scenario>
 		<IO_Flow_Parameter_Set_Trace_Based>
 			<Priority_Class>HIGH</Priority_Class>

@@ -316,8 +316,11 @@ int main(int argc, char *argv[])
 
   command_line_args(argv, ssd_config_file_path, workload_defs_file_path);
 
+  // get exec params
   Execution_Parameter_Set *exec_params = new Execution_Parameter_Set;
   read_configuration_parameters(ssd_config_file_path, exec_params);
+
+  // get wordload as io_scenarios
   std::vector<std::vector<IO_Flow_Parameter_Set *> *> *io_scenarios = read_workload_definitions(workload_defs_file_path);
 
   int cntr = 1;
