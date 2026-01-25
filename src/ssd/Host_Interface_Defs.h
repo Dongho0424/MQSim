@@ -3,13 +3,10 @@
 
 #include <cstdint>
 #include <string>
+
 #include "Host_Interface_NVMe_Priorities.h"
 
-enum class HostInterface_Types
-{
-  SATA,
-  NVME
-};
+enum class HostInterface_Types { SATA, NVME };
 
 #define NVME_FLUSH_OPCODE 0x0000
 #define NVME_WRITE_OPCODE 0x0001
@@ -39,23 +36,27 @@ const uint64_t COMPLETION_QUEUE_REGISTER_7 = 0x1073;
 const uint64_t SUBMISSION_QUEUE_REGISTER_8 = 0x1080;
 const uint64_t COMPLETION_QUEUE_REGISTER_8 = 0x1083;
 
-struct Completion_Queue_Entry
-{
+struct Completion_Queue_Entry {
   uint32_t Command_specific;
   uint32_t Reserved;
-  uint16_t SQ_Head;            // SQ Head Pointer, Indicates the current Submission Queue Head pointer for the Submission Queue indicated in the SQ Identifier field
-  uint16_t SQ_ID;              // SQ Identifier, Indicates the Submission Queue to which the associated command was issued to.
-  uint16_t Command_Identifier; // Command Identifier, Indicates the identifier of the command that is being completed
-  uint16_t SF_P;               // Status Field (SF)+ Phase Tag(P)
-                 // SF: Indicates status for the command that is being completed
-                 // P:Identifies whether a Completion Queue entry is new
+  uint16_t SQ_Head;  // SQ Head Pointer, Indicates the current Submission Queue
+                     // Head pointer for the Submission Queue indicated in the
+                     // SQ Identifier field
+  uint16_t SQ_ID;  // SQ Identifier, Indicates the Submission Queue to which the
+                   // associated command was issued to.
+  uint16_t Command_Identifier;  // Command Identifier, Indicates the identifier
+                                // of the command that is being completed
+  uint16_t
+      SF_P;  // Status Field (SF)+ Phase Tag(P)
+             // SF: Indicates status for the command that is being completed
+             // P:Identifies whether a Completion Queue entry is new
 };
 
-struct Submission_Queue_Entry
-{
-  uint8_t Opcode; // Is it a read or write request
+struct Submission_Queue_Entry {
+  uint8_t Opcode;  // Is it a read or write request
   uint8_t PRP_FUSE;
-  uint16_t Command_Identifier; // The id of the command in the I/O submission queue
+  uint16_t
+      Command_Identifier;  // The id of the command in the I/O submission queue
   uint64_t Namespace_identifier;
   uint64_t Reserved;
   uint64_t Metadata_pointer_1;
@@ -64,4 +65,4 @@ struct Submission_Queue_Entry
   uint32_t Command_specific[6];
 };
 
-#endif // !NVME_DEFINISIONS_H
+#endif  // !NVME_DEFINISIONS_H

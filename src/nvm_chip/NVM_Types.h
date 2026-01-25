@@ -3,13 +3,9 @@
 
 #include <cstdint>
 
-namespace NVM
-{
-  enum class NVM_Type
-  {
-    FLASH
-  };
-  typedef uint64_t memory_content_type;
-}
+namespace NVM {
+enum class NVM_Type { FLASH };
+typedef uint64_t memory_content_type;
+}  // namespace NVM
 
-#endif // !NVM_TYPES_H
+#endif  // !NVM_TYPES_H

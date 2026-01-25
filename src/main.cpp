@@ -1,35 +1,33 @@
-#include <iostream>
-#include <fstream>
-#include <ctime>
-#include <string>
 #include <cstring>
-#include "ssd/SSD_Defs.h"
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #include "exec/Execution_Parameter_Set.h"
-#include "exec/SSD_Device.h"
 #include "exec/Host_System.h"
-#include "utils/rapidxml/rapidxml.hpp"
+#include "exec/SSD_Device.h"
+#include "ssd/SSD_Defs.h"
 #include "utils/DistributionTypes.h"
+#include "utils/rapidxml/rapidxml.hpp"
 
 using namespace std;
 
-void command_line_args(char *argv[], string &input_file_path, string &workload_file_path)
-{
-
-  for (int arg_cntr = 1; arg_cntr < 5; arg_cntr++)
-  {
+void command_line_args(char* argv[], string& input_file_path,
+                       string& workload_file_path) {
+  for (int arg_cntr = 1; arg_cntr < 5; arg_cntr++) {
     string arg = argv[arg_cntr];
 
     char file_path_switch[] = "-i";
-    if (arg.compare(0, strlen(file_path_switch), file_path_switch) == 0)
-    {
+    if (arg.compare(0, strlen(file_path_switch), file_path_switch) == 0) {
       input_file_path.assign(argv[++arg_cntr]);
       // cout << input_file_path << endl;
       continue;
     }
 
     char workload_path_switch[] = "-w";
-    if (arg.compare(0, strlen(workload_path_switch), workload_path_switch) == 0)
-    {
+    if (arg.compare(0, strlen(workload_path_switch), workload_path_switch) ==
+        0) {
       workload_file_path.assign(argv[++arg_cntr]);
       // cout << workload_file_path << endl;
       continue;
@@ -37,16 +35,17 @@ void command_line_args(char *argv[], string &input_file_path, string &workload_f
   }
 }
 
-void read_configuration_parameters(const string ssd_config_file_path, Execution_Parameter_Set *exec_params)
-{
+void read_configuration_parameters(const string ssd_config_file_path,
+                                   Execution_Parameter_Set* exec_params) {
   ifstream ssd_config_file;
   ssd_config_file.open(ssd_config_file_path.c_str());
 
-  if (!ssd_config_file)
-  {
+  if (!ssd_config_file) {
     PRINT_MESSAGE("The specified SSD configuration file does not exist.")
     PRINT_MESSAGE("Using MQSim's default configuration.")
-    PRINT_MESSAGE("Writing the default configuration parameters to the expected configuration file.")
+    PRINT_MESSAGE(
+        "Writing the default configuration parameters to the expected "
+        "configuration file.")
 
     Utils::XmlWriter xmlwriter;
     string tmp;
@@ -54,35 +53,30 @@ void read_configuration_parameters(const string ssd_config_file_path, Execution_
     exec_params->XML_serialize(xmlwriter);
     xmlwriter.Close();
     PRINT_MESSAGE("[====================] Done!\n")
-  }
-  else
-  {
+  } else {
     // Read input workload parameters
     string line((std::istreambuf_iterator<char>(ssd_config_file)),
                 std::istreambuf_iterator<char>());
     ssd_config_file >> line;
-    if (line.compare("USE_INTERNAL_PARAMS") != 0)
-    {
-      rapidxml::xml_document<> doc; // character type defaults to char
-      char *temp_string = new char[line.length() + 1];
+    if (line.compare("USE_INTERNAL_PARAMS") != 0) {
+      rapidxml::xml_document<> doc;  // character type defaults to char
+      char* temp_string = new char[line.length() + 1];
       strcpy(temp_string, line.c_str());
       doc.parse<0>(temp_string);
-      rapidxml::xml_node<> *mqsim_config = doc.first_node("Execution_Parameter_Set");
-      if (mqsim_config != NULL)
-      {
+      rapidxml::xml_node<>* mqsim_config =
+          doc.first_node("Execution_Parameter_Set");
+      if (mqsim_config != NULL) {
         exec_params = new Execution_Parameter_Set;
         exec_params->XML_deserialize(mqsim_config);
-      }
-      else
-      {
+      } else {
         PRINT_MESSAGE("Error in the SSD configuration file!")
         PRINT_MESSAGE("Using MQSim's default configuration.")
       }
-    }
-    else
-    {
+    } else {
       PRINT_MESSAGE("Using MQSim's default configuration.");
-      PRINT_MESSAGE("Writing the default configuration parameters to the expected configuration file.");
+      PRINT_MESSAGE(
+          "Writing the default configuration parameters to the expected "
+          "configuration file.");
 
       Utils::XmlWriter xmlwriter;
       string tmp;
@@ -96,70 +90,76 @@ void read_configuration_parameters(const string ssd_config_file_path, Execution_
   ssd_config_file.close();
 }
 
-std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(const string workload_defs_file_path)
-{
-  std::vector<std::vector<IO_Flow_Parameter_Set *> *> *io_scenarios = new std::vector<std::vector<IO_Flow_Parameter_Set *> *>;
+std::vector<std::vector<IO_Flow_Parameter_Set*>*>* read_workload_definitions(
+    const string workload_defs_file_path) {
+  std::vector<std::vector<IO_Flow_Parameter_Set*>*>* io_scenarios =
+      new std::vector<std::vector<IO_Flow_Parameter_Set*>*>;
 
   ifstream workload_defs_file;
   workload_defs_file.open(workload_defs_file_path.c_str());
   bool use_default_workloads = true;
-  if (!workload_defs_file)
-  {
+  if (!workload_defs_file) {
     PRINT_MESSAGE("The specified workload definition file does not exist!");
     PRINT_MESSAGE("Using MQSim's default workload definitions.");
-    PRINT_MESSAGE("Writing the default workload definitions to the expected workload definition file.");
+    PRINT_MESSAGE(
+        "Writing the default workload definitions to the expected workload "
+        "definition file.");
     PRINT_MESSAGE("[====================] Done!\n");
-  }
-  else
-  {
-    string line((std::istreambuf_iterator<char>(workload_defs_file)), std::istreambuf_iterator<char>());
-    if (line.compare("USE_INTERNAL_PARAMS") != 0)
-    {
+  } else {
+    string line((std::istreambuf_iterator<char>(workload_defs_file)),
+                std::istreambuf_iterator<char>());
+    if (line.compare("USE_INTERNAL_PARAMS") != 0) {
       rapidxml::xml_document<> doc;
       // character type defaults to char
-      char *temp_string = new char[line.length() + 1];
+      char* temp_string = new char[line.length() + 1];
       strcpy(temp_string, line.c_str());
       doc.parse<0>(temp_string);
-      rapidxml::xml_node<> *mqsim_io_scenarios = doc.first_node("MQSim_IO_Scenarios");
-      if (mqsim_io_scenarios != NULL)
-      {
-        for (auto xml_io_scenario = mqsim_io_scenarios->first_node("IO_Scenario"); xml_io_scenario; xml_io_scenario = xml_io_scenario->next_sibling("IO_Scenario"))
-        {
-          std::vector<IO_Flow_Parameter_Set *> *scenario_definition = new std::vector<IO_Flow_Parameter_Set *>;
-          for (auto flow_def = xml_io_scenario->first_node(); flow_def; flow_def = flow_def->next_sibling())
-          {
-            IO_Flow_Parameter_Set *flow;
-            if (strcmp(flow_def->name(), "IO_Flow_Parameter_Set_Synthetic") == 0)
-            {
+      rapidxml::xml_node<>* mqsim_io_scenarios =
+          doc.first_node("MQSim_IO_Scenarios");
+      if (mqsim_io_scenarios != NULL) {
+        for (auto xml_io_scenario =
+                 mqsim_io_scenarios->first_node("IO_Scenario");
+             xml_io_scenario;
+             xml_io_scenario = xml_io_scenario->next_sibling("IO_Scenario")) {
+          std::vector<IO_Flow_Parameter_Set*>* scenario_definition =
+              new std::vector<IO_Flow_Parameter_Set*>;
+          for (auto flow_def = xml_io_scenario->first_node(); flow_def;
+               flow_def = flow_def->next_sibling()) {
+            IO_Flow_Parameter_Set* flow;
+            if (strcmp(flow_def->name(), "IO_Flow_Parameter_Set_Synthetic") ==
+                0) {
               flow = new IO_Flow_Parameter_Set_Synthetic;
-              ((IO_Flow_Parameter_Set_Synthetic *)flow)->XML_deserialize(flow_def);
-            }
-            else if (strcmp(flow_def->name(), "IO_Flow_Parameter_Set_Trace_Based") == 0)
-            {
+              ((IO_Flow_Parameter_Set_Synthetic*)flow)
+                  ->XML_deserialize(flow_def);
+            } else if (strcmp(flow_def->name(),
+                              "IO_Flow_Parameter_Set_Trace_Based") == 0) {
               flow = new IO_Flow_Parameter_Set_Trace_Based;
-              ((IO_Flow_Parameter_Set_Trace_Based *)flow)->XML_deserialize(flow_def);
+              ((IO_Flow_Parameter_Set_Trace_Based*)flow)
+                  ->XML_deserialize(flow_def);
             }
             scenario_definition->push_back(flow);
           }
           io_scenarios->push_back(scenario_definition);
           use_default_workloads = false;
         }
-      }
-      else
-      {
+      } else {
         PRINT_MESSAGE("Error in the workload definition file!");
         PRINT_MESSAGE("Using MQSim's default workload definitions.");
-        PRINT_MESSAGE("Writing the default workload definitions to the expected workload definition file.");
+        PRINT_MESSAGE(
+            "Writing the default workload definitions to the expected workload "
+            "definition file.");
         PRINT_MESSAGE("[====================] Done!\n");
       }
     }
   }
 
-  if (use_default_workloads)
-  {
-    std::vector<IO_Flow_Parameter_Set *> *scenario_definition = new std::vector<IO_Flow_Parameter_Set *>;
-    IO_Flow_Parameter_Set_Synthetic *io_flow_1 = new IO_Flow_Parameter_Set_Synthetic;
-    io_flow_1->Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_CACHE;
+  if (use_default_workloads) {
+    std::vector<IO_Flow_Parameter_Set*>* scenario_definition =
+        new std::vector<IO_Flow_Parameter_Set*>;
+    IO_Flow_Parameter_Set_Synthetic* io_flow_1 =
+        new IO_Flow_Parameter_Set_Synthetic;
+    io_flow_1->Device_Level_Data_Caching_Mode =
+        SSD_Components::Caching_Mode::WRITE_CACHE;
     io_flow_1->Type = Flow_Type::SYNTHETIC;
     io_flow_1->Priority_Class = IO_Flow_Priority_Class::HIGH;
     io_flow_1->Channel_No = 8;
@@ -188,13 +188,16 @@ std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(c
     io_flow_1->Plane_IDs[1] = 1;
     io_flow_1->Initial_Occupancy_Percentage = 50;
     io_flow_1->Working_Set_Percentage = 85;
-    io_flow_1->Synthetic_Generator_Type = Utils::Request_Generator_Type::QUEUE_DEPTH;
+    io_flow_1->Synthetic_Generator_Type =
+        Utils::Request_Generator_Type::QUEUE_DEPTH;
     io_flow_1->Read_Percentage = 100;
-    io_flow_1->Address_Distribution = Utils::Address_Distribution_Type::RANDOM_UNIFORM;
+    io_flow_1->Address_Distribution =
+        Utils::Address_Distribution_Type::RANDOM_UNIFORM;
     io_flow_1->Percentage_of_Hot_Region = 0;
     io_flow_1->Generated_Aligned_Addresses = true;
     io_flow_1->Address_Alignment_Unit = 16;
-    io_flow_1->Request_Size_Distribution = Utils::Request_Size_Distribution_Type::FIXED;
+    io_flow_1->Request_Size_Distribution =
+        Utils::Request_Size_Distribution_Type::FIXED;
     io_flow_1->Average_Request_Size = 8;
     io_flow_1->Variance_Request_Size = 0;
     io_flow_1->Seed = 12344;
@@ -204,8 +207,10 @@ std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(c
     io_flow_1->Total_Requests_To_Generate = 0;
     scenario_definition->push_back(io_flow_1);
 
-    IO_Flow_Parameter_Set_Synthetic *io_flow_2 = new IO_Flow_Parameter_Set_Synthetic;
-    io_flow_2->Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_CACHE;
+    IO_Flow_Parameter_Set_Synthetic* io_flow_2 =
+        new IO_Flow_Parameter_Set_Synthetic;
+    io_flow_2->Device_Level_Data_Caching_Mode =
+        SSD_Components::Caching_Mode::WRITE_CACHE;
     io_flow_2->Type = Flow_Type::SYNTHETIC;
     io_flow_2->Priority_Class = IO_Flow_Priority_Class::HIGH;
     io_flow_2->Channel_No = 8;
@@ -234,13 +239,16 @@ std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(c
     io_flow_2->Plane_IDs[1] = 1;
     io_flow_2->Initial_Occupancy_Percentage = 50;
     io_flow_2->Working_Set_Percentage = 85;
-    io_flow_2->Synthetic_Generator_Type = Utils::Request_Generator_Type::QUEUE_DEPTH;
+    io_flow_2->Synthetic_Generator_Type =
+        Utils::Request_Generator_Type::QUEUE_DEPTH;
     io_flow_2->Read_Percentage = 100;
-    io_flow_2->Address_Distribution = Utils::Address_Distribution_Type::RANDOM_UNIFORM;
+    io_flow_2->Address_Distribution =
+        Utils::Address_Distribution_Type::RANDOM_UNIFORM;
     io_flow_2->Percentage_of_Hot_Region = 0;
     io_flow_2->Generated_Aligned_Addresses = true;
     io_flow_2->Address_Alignment_Unit = 16;
-    io_flow_2->Request_Size_Distribution = Utils::Request_Size_Distribution_Type::FIXED;
+    io_flow_2->Request_Size_Distribution =
+        Utils::Request_Size_Distribution_Type::FIXED;
     io_flow_2->Average_Request_Size = 8;
     io_flow_2->Variance_Request_Size = 0;
     io_flow_2->Seed = 6533;
@@ -252,7 +260,8 @@ std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(c
 
     io_scenarios->push_back(scenario_definition);
 
-    PRINT_MESSAGE("Writing default workload parameters to the expected input file.")
+    PRINT_MESSAGE(
+        "Writing default workload parameters to the expected input file.")
 
     Utils::XmlWriter xmlwriter;
     string tmp;
@@ -274,8 +283,8 @@ std::vector<std::vector<IO_Flow_Parameter_Set *> *> *read_workload_definitions(c
   return io_scenarios;
 }
 
-void collect_results(SSD_Device &ssd, Host_System &host, const char *output_file_path)
-{
+void collect_results(SSD_Device& ssd, Host_System& host,
+                     const char* output_file_path) {
   Utils::XmlWriter xmlwriter;
   xmlwriter.Open(output_file_path);
 
@@ -287,29 +296,34 @@ void collect_results(SSD_Device &ssd, Host_System &host, const char *output_file
 
   xmlwriter.Write_close_tag();
 
-  std::vector<Host_Components::IO_Flow_Base *> IO_flows = host.Get_io_flows();
-  for (unsigned int stream_id = 0; stream_id < IO_flows.size(); stream_id++)
-  {
-    cout << "Flow " << IO_flows[stream_id]->ID() << " - total requests generated: " << IO_flows[stream_id]->Get_generated_request_count()
-         << " total requests serviced:" << IO_flows[stream_id]->Get_serviced_request_count() << endl;
-    cout << "                   - device response time: " << IO_flows[stream_id]->Get_device_response_time() << " (us)"
-         << " end-to-end request delay:" << IO_flows[stream_id]->Get_end_to_end_request_delay() << " (us)" << endl;
+  std::vector<Host_Components::IO_Flow_Base*> IO_flows = host.Get_io_flows();
+  for (unsigned int stream_id = 0; stream_id < IO_flows.size(); stream_id++) {
+    cout << "Flow " << IO_flows[stream_id]->ID()
+         << " - total requests generated: "
+         << IO_flows[stream_id]->Get_generated_request_count()
+         << " total requests serviced:"
+         << IO_flows[stream_id]->Get_serviced_request_count() << endl;
+    cout << "                   - device response time: "
+         << IO_flows[stream_id]->Get_device_response_time() << " (us)"
+         << " end-to-end request delay:"
+         << IO_flows[stream_id]->Get_end_to_end_request_delay() << " (us)"
+         << endl;
   }
 }
 
-void print_help()
-{
-  cout << "MQSim - SSD simulator with both NVMe and SATA host interface behavior, see ReadMe.md for details" << endl
+void print_help() {
+  cout << "MQSim - SSD simulator with both NVMe and SATA host interface "
+          "behavior, see ReadMe.md for details"
+       << endl
        << "Standalone Usage:" << endl
        << "./MQSim [-i path/to/config/file] [-w path/to/workload/file]" << endl;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   string ssd_config_file_path, workload_defs_file_path;
-  if (argc != 5)
-  {
-    // MQSim expects 2 arguments: 1) the path to the SSD configuration definition file, and 2) the path to the workload definition file
+  if (argc != 5) {
+    // MQSim expects 2 arguments: 1) the path to the SSD configuration
+    // definition file, and 2) the path to the workload definition file
     print_help();
     return 1;
   }
@@ -317,37 +331,47 @@ int main(int argc, char *argv[])
   command_line_args(argv, ssd_config_file_path, workload_defs_file_path);
 
   // get exec params
-  Execution_Parameter_Set *exec_params = new Execution_Parameter_Set;
+  Execution_Parameter_Set* exec_params = new Execution_Parameter_Set;
   read_configuration_parameters(ssd_config_file_path, exec_params);
 
   // get wordload as io_scenarios
-  std::vector<std::vector<IO_Flow_Parameter_Set *> *> *io_scenarios = read_workload_definitions(workload_defs_file_path);
+  std::vector<std::vector<IO_Flow_Parameter_Set*>*>* io_scenarios =
+      read_workload_definitions(workload_defs_file_path);
 
   int cntr = 1;
-  for (auto io_scen = io_scenarios->begin(); io_scen != io_scenarios->end(); io_scen++, cntr++)
-  {
+  for (auto io_scen = io_scenarios->begin(); io_scen != io_scenarios->end();
+       io_scen++, cntr++) {
     time_t start_time = time(0);
-    char *dt = ctime(&start_time);
+    char* dt = ctime(&start_time);
     PRINT_MESSAGE("MQSim started at " << dt)
     PRINT_MESSAGE("******************************")
-    PRINT_MESSAGE("Executing scenario " << cntr << " out of " << io_scenarios->size() << " .......")
+    PRINT_MESSAGE("Executing scenario " << cntr << " out of "
+                                        << io_scenarios->size() << " .......")
 
-    // The simulator should always be reset, before starting the actual simulation
+    // The simulator should always be reset, before starting the actual
+    // simulation
     Simulator->Reset();
 
     // host에 io_flow 저장
     exec_params->Host_Configuration.IO_Flow_Definitions.clear();
-    for (auto io_flow_def = (*io_scen)->begin(); io_flow_def != (*io_scen)->end(); io_flow_def++)
-    {
-      exec_params->Host_Configuration.IO_Flow_Definitions.push_back(*io_flow_def);
+    for (auto io_flow_def = (*io_scen)->begin();
+         io_flow_def != (*io_scen)->end(); io_flow_def++) {
+      exec_params->Host_Configuration.IO_Flow_Definitions.push_back(
+          *io_flow_def);
     }
 
     // Create SSD_Device based on the specified parameters
-    SSD_Device ssd(&exec_params->SSD_Device_Configuration, &exec_params->Host_Configuration.IO_Flow_Definitions);
+    SSD_Device ssd(&exec_params->SSD_Device_Configuration,
+                   &exec_params->Host_Configuration.IO_Flow_Definitions);
 
     // Create Host_System based on the specified parameters
-    exec_params->Host_Configuration.Input_file_path = workload_defs_file_path.substr(0, workload_defs_file_path.find_last_of("."));
-    Host_System host(&exec_params->Host_Configuration, exec_params->SSD_Device_Configuration.Enabled_Preconditioning, ssd.Host_interface);
+    exec_params->Host_Configuration.Input_file_path =
+        workload_defs_file_path.substr(
+            0, workload_defs_file_path.find_last_of("."));
+    Host_System host(
+        &exec_params->Host_Configuration,
+        exec_params->SSD_Device_Configuration.Enabled_Preconditioning,
+        ssd.Host_interface);
     host.Attach_ssd_device(&ssd);
 
     Simulator->Start_simulation();
@@ -356,14 +380,21 @@ int main(int argc, char *argv[])
     dt = ctime(&end_time);
     PRINT_MESSAGE("MQSim finished at " << dt)
     uint64_t duration = (uint64_t)difftime(end_time, start_time);
-    PRINT_MESSAGE("Total simulation time: " << duration / 3600 << ":" << (duration % 3600) / 60 << ":" << ((duration % 3600) % 60))
+    PRINT_MESSAGE("Total simulation time: " << duration / 3600 << ":"
+                                            << (duration % 3600) / 60 << ":"
+                                            << ((duration % 3600) % 60))
     PRINT_MESSAGE("");
 
     PRINT_MESSAGE("Writing results to output file .......");
-    
+
     string output_dir = "output/";
-    collect_results(ssd, host, (output_dir + workload_defs_file_path.substr(0, workload_defs_file_path.find_last_of(".")) + "_scenario_" + std::to_string(cntr) + ".xml").c_str());
+    collect_results(ssd, host,
+                    (output_dir +
+                     workload_defs_file_path.substr(
+                         0, workload_defs_file_path.find_last_of(".")) +
+                     "_scenario_" + std::to_string(cntr) + ".xml")
+                        .c_str());
   }
-  
+
   return 0;
 }

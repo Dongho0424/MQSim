@@ -2,22 +2,15 @@
 #define FLASH_TYPES_H
 
 #include <cstdint>
+
 #include "../../sim/Sim_Defs.h"
 #include "../NVM_Types.h"
 
-namespace NVM
-{
-  namespace FlashMemory
-  {
-    enum class Command_Suspension_Mode
-    {
-      NONE,
-      PROGRAM,
-      PROGRAM_ERASE,
-      ERASE
-    };
-  }
+namespace NVM {
+namespace FlashMemory {
+enum class Command_Suspension_Mode { NONE, PROGRAM, PROGRAM_ERASE, ERASE };
 }
+}  // namespace NVM
 
 typedef uint64_t page_status_type;
 #define FULL_PROGRAMMED_PAGE 0xffffffffffffffffULL
@@ -31,12 +24,7 @@ typedef uint64_t LPA_type;
 typedef uint64_t PPA_type;
 typedef uint64_t command_code_type;
 
-enum class Flash_Technology_Type
-{
-  SLC = 1,
-  MLC = 2,
-  TLC = 3
-};
+enum class Flash_Technology_Type { SLC = 1, MLC = 2, TLC = 3 };
 
 #define FREE_PAGE 0x0000000000000000ULL
 #define NO_LPA 0xffffffffffffffffULL
@@ -45,4 +33,4 @@ enum class Flash_Technology_Type
 #define NO_PPA 0xffffffffffffffffULL
 #define NO_MPPN 0xffffffffULL
 
-#endif // !FLASH_TYPES_H
+#endif  // !FLASH_TYPES_H
