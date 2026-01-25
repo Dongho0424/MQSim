@@ -38,6 +38,9 @@ namespace MQSimEngine
       _triggersSetUp = true;
     }
 
+    // virtual destructor
+    virtual ~Sim_Object() {}
+
     virtual void Execute_simulator_event(Sim_Event *) = 0;
 
   private:
