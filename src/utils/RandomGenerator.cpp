@@ -5,9 +5,7 @@
 #include <stdexcept>
 
 namespace Utils {
-RandomGenerator::RandomGenerator(int seed) {
-  rand = new CMRRandomGenerator(seed / 200 + 1, seed % 200);
-}
+RandomGenerator::RandomGenerator(int seed) { rand = new CMRRandomGenerator(seed / 200 + 1, seed % 200); }
 
 uint32_t RandomGenerator::Get_uint(uint32_t maxValue) {
   uint32_t v = (uint32_t)(FloatRandom() * (maxValue + 1));
@@ -21,17 +19,13 @@ int32_t RandomGenerator::Get_int(int32_t maxValue) {
 
 double RandomGenerator::FloatRandom() { return rand->NextDouble(); }
 
-double RandomGenerator::Uniform(double a, double b) {
-  return a + (b - a) * FloatRandom();
-}
+double RandomGenerator::Uniform(double a, double b) { return a + (b - a) * FloatRandom(); }
 
 /*
  *   Return a random integer uniformly distributed
  *   in the range m to n, inclusive
  */
-uint32_t RandomGenerator::Uniform_uint(uint32_t m, uint32_t n) {
-  return m + (uint32_t)((n - m + 1.0) * FloatRandom());
-}
+uint32_t RandomGenerator::Uniform_uint(uint32_t m, uint32_t n) { return m + (uint32_t)((n - m + 1.0) * FloatRandom()); }
 
 int64_t RandomGenerator::Uniform_long(int64_t m, int64_t n) {
   return m + (int64_t)((double)(n - m + 1) * FloatRandom());
@@ -45,9 +39,7 @@ uint64_t RandomGenerator::Uniform_ulong(uint64_t m, uint64_t n) {
  *   Return a random double number from a negative exponential
  *   distribution with mean 'mean'
  */
-double RandomGenerator::Exponential(double mean) {
-  return 0 - mean * log(FloatRandom());
-}
+double RandomGenerator::Exponential(double mean) { return 0 - mean * log(FloatRandom()); }
 
 /*
  *   Return a random double number from an erlang distribution
@@ -113,9 +105,7 @@ double RandomGenerator::Normal(double x, double s) {
  *    Return a random double number from a log-normal
  *    distribution with mean x and standard deviation s.
  */
-double RandomGenerator::LogNormal(double x, double s) {
-  return exp(Normal(x, s));
-}
+double RandomGenerator::LogNormal(double x, double s) { return exp(Normal(x, s)); }
 
 /*
  *   Return a random number from a geometric distribution
@@ -182,26 +172,20 @@ int64_t RandomGenerator::Poisson(double x) {
  *   Return a random number from a Weibull distribution
  *   with parameters alpha and beta.
  */
-double RandomGenerator::Weibull(double alpha, double beta) {
-  return pow(-beta * log(1 - FloatRandom()), 1 / alpha);
-}
+double RandomGenerator::Weibull(double alpha, double beta) { return pow(-beta * log(1 - FloatRandom()), 1 / alpha); }
 
 /*
  *   Return a random number from a Pareto distribution
  *   with parameters alpha(shape) and beta(position).
  */
-double RandomGenerator::Pareto(double alpha, double beta) {
-  return beta * pow(FloatRandom(), -1.0 / alpha);
-}
+double RandomGenerator::Pareto(double alpha, double beta) { return beta * pow(FloatRandom(), -1.0 / alpha); }
 
 /*
  *   Return a random number from a 1/x * 1/ln(max/min) distribution
  *   with min and max parameters.
  * mean = (max-min)/(ln(max)-ln(min))
  */
-double RandomGenerator::Inverse(double min, double max) {
-  return min * exp(FloatRandom() * log(max / min));
-}
+double RandomGenerator::Inverse(double min, double max) { return min * exp(FloatRandom() * log(max / min)); }
 
 /*
  *   Return a random number from a triangular distribution
@@ -211,11 +195,9 @@ double RandomGenerator::Inverse(double min, double max) {
 double RandomGenerator::Triangular(double min, double middle, double max) {
   double y = FloatRandom();
   if (y <= (middle - min) / (max - min)) {
-    return min + sqrt(y * max * middle - y * max * min - y * min * middle +
-                      y * min * min);
+    return min + sqrt(y * max * middle - y * max * min - y * min * middle + y * min * min);
   } else {
-    return max - sqrt(max * max + y * max * middle - y * max * max -
-                      y * min * middle + y * max * min - max * min -
+    return max - sqrt(max * max + y * max * middle - y * max * max - y * min * middle + y * max * min - max * min -
                       max * middle + min * middle);
   }
 }

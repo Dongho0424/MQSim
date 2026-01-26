@@ -8,8 +8,7 @@ namespace MQSimEngine {
 class Sim_Object;
 class Sim_Event {
  public:
-  Sim_Event(sim_time_type fireTime, Sim_Object* targetObject,
-            void* parameters = NULL, int type = 0)
+  Sim_Event(sim_time_type fireTime, Sim_Object* targetObject, void* parameters = NULL, int type = 0)
       : Fire_time(fireTime),
         Target_sim_object(targetObject),
         Parameters(parameters),

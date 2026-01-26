@@ -16,8 +16,7 @@ void Execution_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter) {
 
 void Execution_Parameter_Set::XML_deserialize(rapidxml::xml_node<>* node) {
   try {
-    for (auto param = node->first_node(); param;
-         param = param->next_sibling()) {
+    for (auto param = node->first_node(); param; param = param->next_sibling()) {
       if (strcmp(param->name(), "Host_Parameter_Set") == 0) {
         Host_Configuration.XML_deserialize(param);
       } else if (strcmp(param->name(), "Device_Parameter_Set") == 0) {

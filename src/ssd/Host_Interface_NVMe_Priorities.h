@@ -5,13 +5,7 @@
 
 class IO_Flow_Priority_Class {
  public:
-  enum Priority {
-    URGENT = 0,
-    HIGH = 1,
-    MEDIUM = 2,
-    LOW = 3,
-    UNDEFINED = 10000
-  };
+  enum Priority { URGENT = 0, HIGH = 1, MEDIUM = 2, LOW = 3, UNDEFINED = 10000 };
 
   static const int NUMBER_OF_PRIORITY_LEVELS = 4;
 

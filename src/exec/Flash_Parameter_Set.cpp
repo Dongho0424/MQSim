@@ -6,32 +6,25 @@
 
 #include "../sim/Engine.h"
 
-Flash_Technology_Type Flash_Parameter_Set::Flash_Technology =
-    Flash_Technology_Type::MLC;
-NVM::FlashMemory::Command_Suspension_Mode
-    Flash_Parameter_Set::CMD_Suspension_Support =
-        NVM::FlashMemory::Command_Suspension_Mode::ERASE;
+Flash_Technology_Type Flash_Parameter_Set::Flash_Technology = Flash_Technology_Type::MLC;
+NVM::FlashMemory::Command_Suspension_Mode Flash_Parameter_Set::CMD_Suspension_Support =
+    NVM::FlashMemory::Command_Suspension_Mode::ERASE;
 sim_time_type Flash_Parameter_Set::Page_Read_Latency_LSB = 75000;
 sim_time_type Flash_Parameter_Set::Page_Read_Latency_CSB = 75000;
 sim_time_type Flash_Parameter_Set::Page_Read_Latency_MSB = 75000;
 sim_time_type Flash_Parameter_Set::Page_Program_Latency_LSB = 750000;
 sim_time_type Flash_Parameter_Set::Page_Program_Latency_CSB = 750000;
 sim_time_type Flash_Parameter_Set::Page_Program_Latency_MSB = 750000;
-sim_time_type Flash_Parameter_Set::Block_Erase_Latency =
-    3800000;  // Block erase latency in nano-seconds
+sim_time_type Flash_Parameter_Set::Block_Erase_Latency = 3800000;  // Block erase latency in nano-seconds
 unsigned int Flash_Parameter_Set::Block_PE_Cycles_Limit = 10000;
-sim_time_type Flash_Parameter_Set::Suspend_Erase_Time =
-    700000;  // in nano-seconds
-sim_time_type Flash_Parameter_Set::Suspend_Program_Time =
-    100000;  // in nano-seconds
+sim_time_type Flash_Parameter_Set::Suspend_Erase_Time = 700000;    // in nano-seconds
+sim_time_type Flash_Parameter_Set::Suspend_Program_Time = 100000;  // in nano-seconds
 unsigned int Flash_Parameter_Set::Die_No_Per_Chip = 2;
 unsigned int Flash_Parameter_Set::Plane_No_Per_Die = 2;
 unsigned int Flash_Parameter_Set::Block_No_Per_Plane = 2048;
-unsigned int Flash_Parameter_Set::Page_No_Per_Block = 256;  // Page no per block
-unsigned int Flash_Parameter_Set::Page_Capacity =
-    8192;  // Flash page capacity in bytes
-unsigned int Flash_Parameter_Set::Page_Metadat_Capacity =
-    1872;  // Flash page capacity in bytes
+unsigned int Flash_Parameter_Set::Page_No_Per_Block = 256;       // Page no per block
+unsigned int Flash_Parameter_Set::Page_Capacity = 8192;          // Flash page capacity in bytes
+unsigned int Flash_Parameter_Set::Page_Metadat_Capacity = 1872;  // Flash page capacity in bytes
 
 void Flash_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter) {
   std::string tmp;
@@ -143,8 +136,7 @@ void Flash_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter) {
 
 void Flash_Parameter_Set::XML_deserialize(rapidxml::xml_node<>* node) {
   try {
-    for (auto param = node->first_node(); param;
-         param = param->next_sibling()) {
+    for (auto param = node->first_node(); param; param = param->next_sibling()) {
       if (strcmp(param->name(), "Flash_Technology") == 0) {
         std::string val = param->value();
         std::transform(val.begin(), val.end(), val.begin(), ::toupper);
@@ -155,26 +147,20 @@ void Flash_Parameter_Set::XML_deserialize(rapidxml::xml_node<>* node) {
         else if (strcmp(val.c_str(), "TLC") == 0)
           Flash_Technology = Flash_Technology_Type::TLC;
         else
-          PRINT_ERROR(
-              "Unknown flash technology type specified in the input file")
+          PRINT_ERROR("Unknown flash technology type specified in the input file")
       } else if (strcmp(param->name(), "CMD_Suspension_Support") == 0) {
         std::string val = param->value();
         std::transform(val.begin(), val.end(), val.begin(), ::toupper);
         if (strcmp(val.c_str(), "NONE") == 0) {
-          CMD_Suspension_Support =
-              NVM::FlashMemory::Command_Suspension_Mode::NONE;
+          CMD_Suspension_Support = NVM::FlashMemory::Command_Suspension_Mode::NONE;
         } else if (strcmp(val.c_str(), "ERASE") == 0) {
-          CMD_Suspension_Support =
-              NVM::FlashMemory::Command_Suspension_Mode::ERASE;
+          CMD_Suspension_Support = NVM::FlashMemory::Command_Suspension_Mode::ERASE;
         } else if (strcmp(val.c_str(), "PROGRAM") == 0) {
-          CMD_Suspension_Support =
-              NVM::FlashMemory::Command_Suspension_Mode::PROGRAM;
+          CMD_Suspension_Support = NVM::FlashMemory::Command_Suspension_Mode::PROGRAM;
         } else if (strcmp(val.c_str(), "PROGRAM_ERASE") == 0) {
-          CMD_Suspension_Support =
-              NVM::FlashMemory::Command_Suspension_Mode::PROGRAM_ERASE;
+          CMD_Suspension_Support = NVM::FlashMemory::Command_Suspension_Mode::PROGRAM_ERASE;
         } else {
-          PRINT_ERROR(
-              "Unknown command suspension type specified in the input file")
+          PRINT_ERROR("Unknown command suspension type specified in the input file")
         }
       } else if (strcmp(param->name(), "Page_Read_Latency_LSB") == 0) {
         std::string val = param->value();

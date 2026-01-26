@@ -8,11 +8,10 @@ namespace NVM {
 namespace FlashMemory {
 class Physical_Page_Address : public NVM_Memory_Address {
  private:
-  static bool
-      block_address_constraint_for_multiplane;  // Block address of the commands
-                                                // to neighbor planes must be
-                                                // identical for multiplane
-                                                // command execution
+  static bool block_address_constraint_for_multiplane;  // Block address of the commands
+                                                        // to neighbor planes must be
+                                                        // identical for multiplane
+                                                        // command execution
  public:
   flash_channel_ID_type ChannelID;
   flash_chip_ID_type ChipID;  // The flashchip ID inside its channel
@@ -21,12 +20,9 @@ class Physical_Page_Address : public NVM_Memory_Address {
   flash_block_ID_type BlockID;
   flash_page_ID_type PageID;
 
-  Physical_Page_Address(const flash_channel_ID_type channel_id = 0,
-                        const flash_chip_ID_type chip_id = 0,
-                        const flash_die_ID_type die_id = 0,
-                        const flash_plane_ID_type plane_id = 0,
-                        const flash_block_ID_type block_id = 0,
-                        const flash_page_ID_type page_id = 0) {
+  Physical_Page_Address(const flash_channel_ID_type channel_id = 0, const flash_chip_ID_type chip_id = 0,
+                        const flash_die_ID_type die_id = 0, const flash_plane_ID_type plane_id = 0,
+                        const flash_block_ID_type block_id = 0, const flash_page_ID_type page_id = 0) {
     ChannelID = channel_id;
     ChipID = chip_id;
     DieID = die_id;

@@ -84,8 +84,7 @@ class CMRRandomGenerator {
     v_copy(w, v);
   }
 
-  static void mm_mul(int64_t a[][3], int64_t b[][3], int64_t c[][3],
-                     int64_t m) {
+  static void mm_mul(int64_t a[][3], int64_t b[][3], int64_t c[][3], int64_t m) {
     int64_t d[3][3];
 
     for (int i = 0; i <= 2; i++) {

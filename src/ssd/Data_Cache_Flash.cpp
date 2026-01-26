@@ -3,10 +3,8 @@
 #include <assert.h>
 
 namespace SSD_Components {
-Data_Cache_Flash::Data_Cache_Flash(unsigned int capacity_in_pages)
-    : capacity_in_pages(capacity_in_pages) {}
-bool Data_Cache_Flash::Exists(const stream_id_type stream_id,
-                              const LPA_type lpn) {
+Data_Cache_Flash::Data_Cache_Flash(unsigned int capacity_in_pages) : capacity_in_pages(capacity_in_pages) {}
+bool Data_Cache_Flash::Exists(const stream_id_type stream_id, const LPA_type lpn) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
   auto it = slots.find(key);
   if (it == slots.end()) {
@@ -22,8 +20,7 @@ Data_Cache_Flash::~Data_Cache_Flash() {
   }
 }
 
-Data_Cache_Slot_Type Data_Cache_Flash::Get_slot(const stream_id_type stream_id,
-                                                const LPA_type lpn) {
+Data_Cache_Slot_Type Data_Cache_Flash::Get_slot(const stream_id_type stream_id, const LPA_type lpn) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
   auto it = slots.find(key);
   assert(it != slots.end());
@@ -34,9 +31,7 @@ Data_Cache_Slot_Type Data_Cache_Flash::Get_slot(const stream_id_type stream_id,
   return *(it->second);
 }
 
-bool Data_Cache_Flash::Check_free_slot_availability() {
-  return slots.size() < capacity_in_pages;
-}
+bool Data_Cache_Flash::Check_free_slot_availability() { return slots.size() < capacity_in_pages; }
 
 bool Data_Cache_Flash::Check_free_slot_availability(unsigned int no_of_slots) {
   return slots.size() + no_of_slots <= capacity_in_pages;
@@ -79,18 +74,16 @@ Data_Cache_Slot_Type Data_Cache_Flash::Evict_one_slot_lru() {
   return evicted_item;
 }
 
-void Data_Cache_Flash::Change_slot_status_to_writeback(
-    const stream_id_type stream_id, const LPA_type lpn) {
+void Data_Cache_Flash::Change_slot_status_to_writeback(const stream_id_type stream_id, const LPA_type lpn) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
   auto it = slots.find(key);
   assert(it != slots.end());
   it->second->Status = Cache_Slot_Status::DIRTY_FLASH_WRITEBACK;
 }
 
-void Data_Cache_Flash::Insert_read_data(
-    const stream_id_type stream_id, const LPA_type lpn,
-    const data_cache_content_type content, const data_timestamp_type timestamp,
-    const page_status_type state_bitmap_of_read_sectors) {
+void Data_Cache_Flash::Insert_read_data(const stream_id_type stream_id, const LPA_type lpn,
+                                        const data_cache_content_type content, const data_timestamp_type timestamp,
+                                        const page_status_type state_bitmap_of_read_sectors) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
 
   if (slots.find(key) != slots.end()) {
@@ -106,16 +99,14 @@ void Data_Cache_Flash::Insert_read_data(
   cache_slot->Content = content;
   cache_slot->Timestamp = timestamp;
   cache_slot->Status = Cache_Slot_Status::CLEAN;
-  lru_list.push_front(
-      std::pair<LPA_type, Data_Cache_Slot_Type*>(key, cache_slot));
+  lru_list.push_front(std::pair<LPA_type, Data_Cache_Slot_Type*>(key, cache_slot));
   cache_slot->lru_list_ptr = lru_list.begin();
   slots[key] = cache_slot;
 }
 
-void Data_Cache_Flash::Insert_write_data(
-    const stream_id_type stream_id, const LPA_type lpn,
-    const data_cache_content_type content, const data_timestamp_type timestamp,
-    const page_status_type state_bitmap_of_write_sectors) {
+void Data_Cache_Flash::Insert_write_data(const stream_id_type stream_id, const LPA_type lpn,
+                                         const data_cache_content_type content, const data_timestamp_type timestamp,
+                                         const page_status_type state_bitmap_of_write_sectors) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
 
   if (slots.find(key) != slots.end()) {
@@ -132,16 +123,14 @@ void Data_Cache_Flash::Insert_write_data(
   cache_slot->Content = content;
   cache_slot->Timestamp = timestamp;
   cache_slot->Status = Cache_Slot_Status::DIRTY_NO_FLASH_WRITEBACK;
-  lru_list.push_front(
-      std::pair<LPA_type, Data_Cache_Slot_Type*>(key, cache_slot));
+  lru_list.push_front(std::pair<LPA_type, Data_Cache_Slot_Type*>(key, cache_slot));
   cache_slot->lru_list_ptr = lru_list.begin();
   slots[key] = cache_slot;
 }
 
-void Data_Cache_Flash::Update_data(
-    const stream_id_type stream_id, const LPA_type lpn,
-    const data_cache_content_type content, const data_timestamp_type timestamp,
-    const page_status_type state_bitmap_of_write_sectors) {
+void Data_Cache_Flash::Update_data(const stream_id_type stream_id, const LPA_type lpn,
+                                   const data_cache_content_type content, const data_timestamp_type timestamp,
+                                   const page_status_type state_bitmap_of_write_sectors) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
   auto it = slots.find(key);
   assert(it != slots.end());
@@ -156,8 +145,7 @@ void Data_Cache_Flash::Update_data(
   }
 }
 
-void Data_Cache_Flash::Remove_slot(const stream_id_type stream_id,
-                                   const LPA_type lpn) {
+void Data_Cache_Flash::Remove_slot(const stream_id_type stream_id, const LPA_type lpn) {
   LPA_type key = LPN_TO_UNIQUE_KEY(stream_id, lpn);
   auto it = slots.find(key);
   assert(it != slots.end());

@@ -93,9 +93,7 @@ void EventTree::RestoreAfterInsert(EventTreeNode* x) {
     if (x->Parent == x->Parent->Parent->Left) {
       // get uncle
       y = x->Parent->Parent->Right;
-      if (y != NULL &&
-          y->Color ==
-              0) {  // uncle is red; change x's Parent and uncle to black
+      if (y != NULL && y->Color == 0) {  // uncle is red; change x's Parent and uncle to black
         x->Parent->Color = 1;
         y->Color = 1;
         // grandparent must be red. Why? Every red node that is not
@@ -104,8 +102,7 @@ void EventTree::RestoreAfterInsert(EventTreeNode* x) {
         x = x->Parent->Parent;  // continue loop with grandparent
       } else {
         // uncle is black; determine if x is greater than Parent
-        if (x ==
-            x->Parent->Right) {  // yes, x is greater than Parent; rotate Left
+        if (x == x->Parent->Right) {  // yes, x is greater than Parent; rotate Left
           // make x a Left child
           x = x->Parent;
           RotateLeft(x);
@@ -155,8 +152,7 @@ void EventTree::RotateLeft(EventTreeNode* x) {
   x->Right = y->Left;  // y's Left child's becomes x's Right child
 
   // modify parents
-  if (y->Left != SentinelNode)
-    y->Left->Parent = x;  // sets y's Left Parent to x
+  if (y->Left != SentinelNode) y->Left->Parent = x;  // sets y's Left Parent to x
 
   if (y != SentinelNode) y->Parent = x->Parent;  // set y's Parent to x's Parent
 
@@ -188,8 +184,7 @@ void EventTree::RotateRight(EventTreeNode* x) {
   x->Left = y->Right;  // y's Right child becomes x's Left child
 
   // modify parents
-  if (y->Right != SentinelNode)
-    y->Right->Parent = x;  // sets y's Right Parent to x
+  if (y->Right != SentinelNode) y->Right->Parent = x;  // sets y's Right Parent to x
 
   if (y != SentinelNode) y->Parent = x->Parent;  // set y's Parent to x's Parent
 
@@ -392,7 +387,7 @@ void EventTree::Restore_after_delete(EventTreeNode* x) {
     if (x == x->Parent->Left)  // determine sub tree from parent
     {
       y = x->Parent->Right;  // y is x's sibling
-      if (y->Color == 0) {  // x is black, y is red - make both black and rotate
+      if (y->Color == 0) {   // x is black, y is red - make both black and rotate
         y->Color = 1;
         x->Parent->Color = 0;
         RotateLeft(x->Parent);

@@ -25,12 +25,10 @@ double Combination_count(double n, double k) {
   return result;
 }
 
-double Combination_count(unsigned int n, unsigned int k) {
-  return Combination_count(double(n), double(k));
-}
+double Combination_count(unsigned int n, unsigned int k) { return Combination_count(double(n), double(k)); }
 
-void Euler_estimation(std::vector<double>& mu, unsigned int b, double rho,
-                      int d, double h, double max_diff, int itr_max) {
+void Euler_estimation(std::vector<double>& mu, unsigned int b, double rho, int d, double h, double max_diff,
+                      int itr_max) {
   std::vector<double> w_0, w;
   for (int i = 0; i <= mu.size(); i++) {
     if (i == 0) {
@@ -53,9 +51,7 @@ void Euler_estimation(std::vector<double>& mu, unsigned int b, double rho,
     }
 
     for (unsigned int i = 1; i < b; i++) {
-      w[i] = w_0[i] +
-             h * (1 - std::pow(w_0[i], d) -
-                  (b - sigma) * ((i * (w_0[i] - w_0[i + 1])) / (b * rho)));
+      w[i] = w_0[i] + h * (1 - std::pow(w_0[i], d) - (b - sigma) * ((i * (w_0[i] - w_0[i + 1])) / (b * rho)));
     }
 
     diff = std::abs(w[0] - w_0[0]);

@@ -10,8 +10,7 @@ namespace FlashMemory {
 enum class DieStatus { BUSY, IDLE };
 class Die {
  public:
-  Die(unsigned int PlanesNoPerDie, unsigned int BlocksNoPerPlane,
-      unsigned int PagesNoPerBlock);
+  Die(unsigned int PlanesNoPerDie, unsigned int BlocksNoPerPlane, unsigned int PagesNoPerBlock);
   ~Die();
   Plane** Planes;
   unsigned int Plane_no;
@@ -22,8 +21,7 @@ class Die {
   Flash_Command *CurrentCMD, *SuspendedCMD;
   bool Suspended;
 
-  sim_time_type STAT_TotalProgramTime, STAT_TotalReadTime, STAT_TotalEraseTime,
-      STAT_TotalXferTime;
+  sim_time_type STAT_TotalProgramTime, STAT_TotalReadTime, STAT_TotalEraseTime, STAT_TotalXferTime;
 };
 }  // namespace FlashMemory
 }  // namespace NVM

@@ -2,8 +2,7 @@
 
 namespace NVM {
 namespace FlashMemory {
-Die::Die(unsigned int PlanesNoPerDie, unsigned int BlocksNoPerPlane,
-         unsigned int PagesNoPerBlock)
+Die::Die(unsigned int PlanesNoPerDie, unsigned int BlocksNoPerPlane, unsigned int PagesNoPerBlock)
     : Plane_no(PlanesNoPerDie),
       Status(DieStatus::IDLE),
       CommandFinishEvent(NULL),

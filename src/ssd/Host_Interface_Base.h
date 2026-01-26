@@ -46,11 +46,9 @@ class Input_Stream_Base {
   unsigned int STAT_number_of_write_requests;
   unsigned int STAT_number_of_read_transactions;
   unsigned int STAT_number_of_write_transactions;
-  sim_time_type STAT_sum_of_read_transactions_execution_time,
-      STAT_sum_of_read_transactions_transfer_time,
+  sim_time_type STAT_sum_of_read_transactions_execution_time, STAT_sum_of_read_transactions_transfer_time,
       STAT_sum_of_read_transactions_waiting_time;
-  sim_time_type STAT_sum_of_write_transactions_execution_time,
-      STAT_sum_of_write_transactions_transfer_time,
+  sim_time_type STAT_sum_of_write_transactions_execution_time, STAT_sum_of_write_transactions_transfer_time,
       STAT_sum_of_write_transactions_waiting_time;
 };
 
@@ -66,22 +64,14 @@ class Input_Stream_Manager_Base {
   virtual void Handle_arrived_write_data(User_Request* request) = 0;
   virtual void Handle_serviced_request(User_Request* request) = 0;
   void Update_transaction_statistics(NVM_Transaction* transaction);
-  uint32_t Get_average_read_transaction_turnaround_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_read_transaction_execution_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_read_transaction_transfer_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_read_transaction_waiting_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_write_transaction_turnaround_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_write_transaction_execution_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_write_transaction_transfer_time(
-      stream_id_type stream_id);  // in microseconds
-  uint32_t Get_average_write_transaction_waiting_time(
-      stream_id_type stream_id);  // in microseconds
+  uint32_t Get_average_read_transaction_turnaround_time(stream_id_type stream_id);   // in microseconds
+  uint32_t Get_average_read_transaction_execution_time(stream_id_type stream_id);    // in microseconds
+  uint32_t Get_average_read_transaction_transfer_time(stream_id_type stream_id);     // in microseconds
+  uint32_t Get_average_read_transaction_waiting_time(stream_id_type stream_id);      // in microseconds
+  uint32_t Get_average_write_transaction_turnaround_time(stream_id_type stream_id);  // in microseconds
+  uint32_t Get_average_write_transaction_execution_time(stream_id_type stream_id);   // in microseconds
+  uint32_t Get_average_write_transaction_transfer_time(stream_id_type stream_id);    // in microseconds
+  uint32_t Get_average_write_transaction_waiting_time(stream_id_type stream_id);     // in microseconds
  protected:
   Host_Interface_Base* host_interface;
   virtual void segment_user_request(User_Request* user_request) = 0;
@@ -108,8 +98,7 @@ class Request_Fetch_Unit_Base {
   std::list<DMA_Req_Item*> dma_list;
 };
 
-class Host_Interface_Base : public MQSimEngine::Sim_Object,
-                            public MQSimEngine::Sim_Reporter {
+class Host_Interface_Base : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Reporter {
   friend class Input_Stream_Manager_Base;
   friend class Input_Stream_Manager_NVMe;
   friend class Input_Stream_Manager_SATA;
@@ -118,35 +107,28 @@ class Host_Interface_Base : public MQSimEngine::Sim_Object,
   friend class Request_Fetch_Unit_SATA;
 
  public:
-  Host_Interface_Base(const sim_object_id_type& id, HostInterface_Types type,
-                      LHA_type max_logical_sector_address,
-                      unsigned int sectors_per_page,
-                      Data_Cache_Manager_Base* cache);
+  Host_Interface_Base(const sim_object_id_type& id, HostInterface_Types type, LHA_type max_logical_sector_address,
+                      unsigned int sectors_per_page, Data_Cache_Manager_Base* cache);
   virtual ~Host_Interface_Base();
   void Setup_triggers();
   void Validate_simulation_config();
 
   typedef void (*UserRequestArrivedSignalHandlerType)(User_Request*);
-  void Connect_to_user_request_arrived_signal(
-      UserRequestArrivedSignalHandlerType function) {
+  void Connect_to_user_request_arrived_signal(UserRequestArrivedSignalHandlerType function) {
     connected_user_request_arrived_signal_handlers.push_back(function);
   }
 
   void Consume_pcie_message(Host_Components::PCIe_Message* message) {
     if (message->Type == Host_Components::PCIe_Message_Type::READ_COMP) {
-      request_fetch_unit->Process_pcie_read_message(
-          message->Address, message->Payload, message->Payload_size);
+      request_fetch_unit->Process_pcie_read_message(message->Address, message->Payload, message->Payload_size);
     } else {
-      request_fetch_unit->Process_pcie_write_message(
-          message->Address, message->Payload, message->Payload_size);
+      request_fetch_unit->Process_pcie_write_message(message->Address, message->Payload, message->Payload_size);
     }
     delete message;
   }
 
-  void Send_read_message_to_host(uint64_t addresss,
-                                 unsigned int request_read_data_size);
-  void Send_write_message_to_host(uint64_t addresss, void* message,
-                                  unsigned int message_size);
+  void Send_read_message_to_host(uint64_t addresss, unsigned int request_read_data_size);
+  void Send_write_message_to_host(uint64_t addresss, void* message, unsigned int message_size);
 
   HostInterface_Types GetType() { return type; }
   void Attach_to_device(Host_Components::PCIe_Switch* pcie_switch);
@@ -161,8 +143,7 @@ class Host_Interface_Base : public MQSimEngine::Sim_Object,
   Input_Stream_Manager_Base* input_stream_manager;
   Request_Fetch_Unit_Base* request_fetch_unit;
   Data_Cache_Manager_Base* cache;
-  std::vector<UserRequestArrivedSignalHandlerType>
-      connected_user_request_arrived_signal_handlers;
+  std::vector<UserRequestArrivedSignalHandlerType> connected_user_request_arrived_signal_handlers;
 
   void broadcast_user_request_arrival_signal(User_Request* user_request) {
     for (std::vector<UserRequestArrivedSignalHandlerType>::iterator it =
@@ -172,15 +153,12 @@ class Host_Interface_Base : public MQSimEngine::Sim_Object,
     }
   }
 
-  static void handle_user_request_serviced_signal_from_cache(
-      User_Request* user_request) {
+  static void handle_user_request_serviced_signal_from_cache(User_Request* user_request) {
     _my_instance->input_stream_manager->Handle_serviced_request(user_request);
   }
 
-  static void handle_user_memory_transaction_serviced_signal_from_cache(
-      NVM_Transaction* transaction) {
-    _my_instance->input_stream_manager->Update_transaction_statistics(
-        transaction);
+  static void handle_user_memory_transaction_serviced_signal_from_cache(NVM_Transaction* transaction) {
+    _my_instance->input_stream_manager->Update_transaction_statistics(transaction);
   }
 
  private:

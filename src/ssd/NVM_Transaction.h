@@ -15,9 +15,8 @@ enum class Transaction_Source_Type { USERIO, CACHE, GC_WL, MAPPING };
 
 class NVM_Transaction {
  public:
-  NVM_Transaction(stream_id_type stream_id, Transaction_Source_Type source,
-                  Transaction_Type type, User_Request* user_request,
-                  IO_Flow_Priority_Class::Priority priority_class)
+  NVM_Transaction(stream_id_type stream_id, Transaction_Source_Type source, Transaction_Type type,
+                  User_Request* user_request, IO_Flow_Priority_Class::Priority priority_class)
       : Stream_id(stream_id),
         Source(source),
         Type(type),

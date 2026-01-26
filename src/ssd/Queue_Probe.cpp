@@ -28,9 +28,7 @@ void Queue_Probe::DequeueRequest(NVM_Transaction* transaction) {
   nDepartures++;
   nDeparturesEpoch++;
 
-  if (transaction == NULL)
-    throw std::logic_error(
-        "Object can not be null if accurateTimingEnabled=ture");
+  if (transaction == NULL) throw std::logic_error("Object can not be null if accurateTimingEnabled=ture");
   sim_time_type et = currentObjectsInQueue[transaction];
   currentObjectsInQueue.erase(transaction);
   sim_time_type tc = Simulator->Time() - et;
@@ -74,14 +72,10 @@ void Queue_Probe::ResetEpochStatistics() {
 
 void Queue_Probe::Snapshot(std::string id, Utils::XmlWriter& writer) {
   writer.Write_start_element_tag(id + "_QueueProbe");
-  writer.Write_attribute_string("MaxQueueLength",
-                                std::to_string(MaxQueueLength()));
-  writer.Write_attribute_string("AvgQueueLength",
-                                std::to_string(AvgQueueLength()));
-  writer.Write_attribute_string("MaxWaitingTime",
-                                std::to_string(MaxWaitingTime()));
-  writer.Write_attribute_string("AvgWaitingTime",
-                                std::to_string(AvgWaitingTime()));
+  writer.Write_attribute_string("MaxQueueLength", std::to_string(MaxQueueLength()));
+  writer.Write_attribute_string("AvgQueueLength", std::to_string(AvgQueueLength()));
+  writer.Write_attribute_string("MaxWaitingTime", std::to_string(MaxWaitingTime()));
+  writer.Write_attribute_string("AvgWaitingTime", std::to_string(AvgWaitingTime()));
   writer.Write_attribute_string("NRequests", std::to_string(NRequests()));
   writer.Write_attribute_string("NDepartures", std::to_string(NDepartures()));
   for (unsigned int i = 0; i < states.size(); i++) {
@@ -93,8 +87,7 @@ void Queue_Probe::Snapshot(std::string id, Utils::XmlWriter& writer) {
     }
     double r = (double)t / (double)(now - lastCountChangeReference);
     writer.Write_attribute_string("QueueLength", std::to_string(i));
-    writer.Write_attribute_string("nEnterances",
-                                  std::to_string(states[i].nEnterances));
+    writer.Write_attribute_string("nEnterances", std::to_string(states[i].nEnterances));
     writer.Write_attribute_string("totalTime", std::to_string(t));
     writer.Write_attribute_string("totalTimeRatio", std::to_string(r));
     writer.Write_end_element_tag();
@@ -114,8 +107,7 @@ unsigned int Queue_Probe::MaxQueueLength() { return maxQueueLength; }
 
 double Queue_Probe::AvgQueueLength() {
   sim_time_type sum = 0;
-  for (unsigned int len = 0; len < states.size(); len++)
-    sum += states[len].totalTime * len;
+  for (unsigned int len = 0; len < states.size(); len++) sum += states[len].totalTime * len;
   return (double)sum / (double)Simulator->Time();
 }
 
@@ -127,9 +119,7 @@ double Queue_Probe::STDevQueueLength() {
   double mean = (double)sum / (double)Simulator->Time();
   double stdev = 0.0;
   for (unsigned int len = 0; len < states.size(); len++) {
-    stdev += std::pow(
-        (double)states[len].totalTime * len / (double)Simulator->Time() - mean,
-        2);
+    stdev += std::pow((double)states[len].totalTime * len / (double)Simulator->Time() - mean, 2);
   }
 
   return std::sqrt(stdev);
@@ -152,17 +142,13 @@ sim_time_type Queue_Probe::MaxWaitingTime() {
 
 sim_time_type Queue_Probe::AvgWaitingTime() {
   if (nDepartures)
-    return (
-        sim_time_type)((double)totalWaitingTime /
-                       (double)(nDepartures * 1000));  // convert nano-seconds
-                                                       // to micro-seconds
+    return (sim_time_type)((double)totalWaitingTime / (double)(nDepartures * 1000));  // convert nano-seconds
+                                                                                      // to micro-seconds
   return 0;
 }
 
 sim_time_type Queue_Probe::AvgWaitingTimeEpoch() {
-  if (nDeparturesEpoch)
-    return (sim_time_type)((double)totalWaitingTimeEpoch /
-                           (double)(nDeparturesEpoch * 1000));
+  if (nDeparturesEpoch) return (sim_time_type)((double)totalWaitingTimeEpoch / (double)(nDeparturesEpoch * 1000));
   return 0;
 }
 

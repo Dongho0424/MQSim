@@ -15,18 +15,15 @@ class IO_Flow_Base;
 class SATA_HBA;
 class PCIe_Root_Complex {
  public:
-  PCIe_Root_Complex(PCIe_Link* pcie_link, HostInterface_Types SSD_device_type,
-                    SATA_HBA* sata_hba,
+  PCIe_Root_Complex(PCIe_Link* pcie_link, HostInterface_Types SSD_device_type, SATA_HBA* sata_hba,
                     std::vector<Host_Components::IO_Flow_Base*>* IO_flows);
 
-  void Consume_pcie_message(
-      PCIe_Message* messages)  // Modern processors support DDIO, where all
-                               // writes to memory are going through LLC
+  void Consume_pcie_message(PCIe_Message* messages)  // Modern processors support DDIO, where all
+                                                     // writes to memory are going through LLC
   {
     switch (messages->Type) {
       case PCIe_Message_Type::READ_REQ:
-        Read_from_memory(messages->Address,
-                         (unsigned int)(intptr_t)messages->Payload);
+        Read_from_memory(messages->Address, (unsigned int)(intptr_t)messages->Payload);
         break;
       case PCIe_Message_Type::WRITE_REQ:
         Write_to_memory(messages->Address, messages->Payload);

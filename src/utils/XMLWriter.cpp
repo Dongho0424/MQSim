@@ -43,15 +43,13 @@ void XmlWriter::Write_open_tag(const std::string openTag) {
   }
 }
 
-void XmlWriter::Write_attribute_string(const std::string attribute_name,
-                                       const std::string attribute_value) {
+void XmlWriter::Write_attribute_string(const std::string attribute_name, const std::string attribute_value) {
   if (outFile.is_open()) {
     for (int i = 0; i < indent + 1; i++) {
       outFile << "\t";
     }
 
-    outFile << " <" << attribute_name + ">" + attribute_value + "</"
-            << attribute_name + ">\n";
+    outFile << " <" << attribute_name + ">" + attribute_value + "</" << attribute_name + ">\n";
   } else {
     PRINT_ERROR("The XML output file is closed. Unable to write to file");
   }
@@ -103,8 +101,7 @@ void XmlWriter::Write_attribute(const std::string outAttribute) {
   }
 }
 
-void XmlWriter::Write_attribute_string_inline(
-    const std::string attribute_name, const std::string attribute_value) {
+void XmlWriter::Write_attribute_string_inline(const std::string attribute_name, const std::string attribute_value) {
   if (outFile.is_open()) {
     outFile << " ";
     outFile << attribute_name + "=\"" + attribute_value + "\"";

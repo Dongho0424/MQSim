@@ -22,9 +22,8 @@ class Engine {
 
   static Engine* Instance();
   sim_time_type Time();
-  Sim_Event* Register_sim_event(sim_time_type fireTime,
-                                Sim_Object* targetObject,
-                                void* parameters = NULL, int type = 0);
+  Sim_Event* Register_sim_event(sim_time_type fireTime, Sim_Object* targetObject, void* parameters = NULL,
+                                int type = 0);
   void Ignore_sim_event(Sim_Event*);
   void Reset();
   void AddObject(Sim_Object* obj);

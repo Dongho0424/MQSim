@@ -46,16 +46,14 @@ struct Workload_Statistics {
   log-structured file system", ACM CSUR, 1992. A fraction f of the complete
   address space corresponds to hot data and the remaining fraction to cold data.
   The fraction of write operations to the hot data is denoted as r*/
-  double
-      Ratio_of_hot_addresses_to_whole_working_set;  // The f parameter in the
-                                                    // Rosenblum hot/cold model
-  double Ratio_of_traffic_accessing_hot_region;     // The r parameter in the
-                                                    // Rosenblum hot/cold model
+  double Ratio_of_hot_addresses_to_whole_working_set;  // The f parameter in the
+                                                       // Rosenblum hot/cold model
+  double Ratio_of_traffic_accessing_hot_region;        // The r parameter in the
+                                                       // Rosenblum hot/cold model
   int random_address_generator_seed;
   int random_hot_cold_generator_seed;
   int random_hot_address_generator_seed;
-  std::map<LPA_type, Address_Histogram_Unit> Write_address_access_pattern,
-      Read_address_access_pattern;
+  std::map<LPA_type, Address_Histogram_Unit> Write_address_access_pattern, Read_address_access_pattern;
   std::set<LPA_type> Write_read_shared_addresses;
   LHA_type First_Accessed_Address, Last_Accessed_Address, Min_LHA, Max_LHA;
   LHA_type hot_region_end_lsa;

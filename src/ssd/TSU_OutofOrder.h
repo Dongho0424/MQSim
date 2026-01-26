@@ -22,14 +22,11 @@ class FTL;
  */
 class TSU_OutOfOrder : public TSU_Base {
  public:
-  TSU_OutOfOrder(const sim_object_id_type& id, FTL* ftl,
-                 NVM_PHY_ONFI_NVDDR2* NVMController, unsigned int Channel_no,
-                 unsigned int chip_no_per_channel, unsigned int DieNoPerChip,
-                 unsigned int PlaneNoPerDie,
-                 sim_time_type WriteReasonableSuspensionTimeForRead,
-                 sim_time_type EraseReasonableSuspensionTimeForRead,
-                 sim_time_type EraseReasonableSuspensionTimeForWrite,
-                 bool EraseSuspensionEnabled, bool ProgramSuspensionEnabled);
+  TSU_OutOfOrder(const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI_NVDDR2* NVMController, unsigned int Channel_no,
+                 unsigned int chip_no_per_channel, unsigned int DieNoPerChip, unsigned int PlaneNoPerDie,
+                 sim_time_type WriteReasonableSuspensionTimeForRead, sim_time_type EraseReasonableSuspensionTimeForRead,
+                 sim_time_type EraseReasonableSuspensionTimeForWrite, bool EraseSuspensionEnabled,
+                 bool ProgramSuspensionEnabled);
   ~TSU_OutOfOrder();
 
   void Schedule();
@@ -37,8 +34,7 @@ class TSU_OutOfOrder : public TSU_Base {
   void Start_simulation();
   void Validate_simulation_config();
   void Execute_simulator_event(MQSimEngine::Sim_Event*);
-  void Report_results_in_XML(std::string name_prefix,
-                             Utils::XmlWriter& xmlwriter);
+  void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
 
  private:
   Flash_Transaction_Queue** UserReadTRQueue;

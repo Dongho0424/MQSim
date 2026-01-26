@@ -1,10 +1,8 @@
 #include "SATA_HBA.h"
 
 namespace Host_Components {
-SATA_HBA::SATA_HBA(sim_object_id_type id, uint16_t ncq_size,
-                   sim_time_type hba_processing_delay,
-                   PCIe_Root_Complex* pcie_root_complex,
-                   std::vector<Host_Components::IO_Flow_Base*>* IO_flows)
+SATA_HBA::SATA_HBA(sim_object_id_type id, uint16_t ncq_size, sim_time_type hba_processing_delay,
+                   PCIe_Root_Complex* pcie_root_complex, std::vector<Host_Components::IO_Flow_Base*>* IO_flows)
     : MQSimEngine::Sim_Object(id),
       ncq_size(ncq_size),
       hba_processing_delay(hba_processing_delay),
@@ -79,12 +77,11 @@ void SATA_HBA::Execute_simulator_event(MQSimEngine::Sim_Event* event) {
             SATA_UPDATE_SQ_TAIL(sata_ncq);
           }
           new_req->Enqueue_time = Simulator->Time();
-          pcie_root_complex->Write_to_device(
-              sata_ncq.Submission_tail_register_address_on_device,
-              sata_ncq.Submission_queue_tail);  // Based on NVMe protocol
-                                                // definition, the updated tail
-                                                // pointer should be informed to
-                                                // the device
+          pcie_root_complex->Write_to_device(sata_ncq.Submission_tail_register_address_on_device,
+                                             sata_ncq.Submission_queue_tail);  // Based on NVMe protocol
+                                                                               // definition, the updated tail
+                                                                               // pointer should be informed to
+                                                                               // the device
         } else {
           break;
         }
@@ -93,9 +90,8 @@ void SATA_HBA::Execute_simulator_event(MQSimEngine::Sim_Event* event) {
       delete cqe;
 
       if (consume_requests.size() > 0) {
-        Simulator->Register_sim_event(
-            Simulator->Time() + hba_processing_delay, this, NULL,
-            static_cast<int>(HBA_Sim_Events::CONSUME_IO_REQUEST));
+        Simulator->Register_sim_event(Simulator->Time() + hba_processing_delay, this, NULL,
+                                      static_cast<int>(HBA_Sim_Events::CONSUME_IO_REQUEST));
       }
       break;
     }
@@ -119,18 +115,15 @@ void SATA_HBA::Execute_simulator_event(MQSimEngine::Sim_Event* event) {
           SATA_UPDATE_SQ_TAIL(sata_ncq);
         }
         request->Enqueue_time = Simulator->Time();
-        pcie_root_complex->Write_to_device(
-            sata_ncq.Submission_tail_register_address_on_device,
-            sata_ncq
-                .Submission_queue_tail);  // Based on NVMe protocol definition,
-                                          // the updated tail pointer should be
-                                          // informed to the device
+        pcie_root_complex->Write_to_device(sata_ncq.Submission_tail_register_address_on_device,
+                                           sata_ncq.Submission_queue_tail);  // Based on NVMe protocol definition,
+                                                                             // the updated tail pointer should be
+                                                                             // informed to the device
       }
 
       if (host_requests.size() > 0) {
-        Simulator->Register_sim_event(
-            Simulator->Time() + hba_processing_delay, this, NULL,
-            static_cast<int>(HBA_Sim_Events::SUBMIT_IO_REQUEST));
+        Simulator->Register_sim_event(Simulator->Time() + hba_processing_delay, this, NULL,
+                                      static_cast<int>(HBA_Sim_Events::SUBMIT_IO_REQUEST));
       }
 
       break;
@@ -141,30 +134,26 @@ void SATA_HBA::Execute_simulator_event(MQSimEngine::Sim_Event* event) {
 void SATA_HBA::Submit_io_request(Host_IO_Request* request) {
   host_requests.push(request);
   if (host_requests.size() == 1) {
-    Simulator->Register_sim_event(
-        Simulator->Time() + hba_processing_delay, this, NULL,
-        static_cast<int>(HBA_Sim_Events::SUBMIT_IO_REQUEST));
+    Simulator->Register_sim_event(Simulator->Time() + hba_processing_delay, this, NULL,
+                                  static_cast<int>(HBA_Sim_Events::SUBMIT_IO_REQUEST));
   }
 }
 
 void SATA_HBA::SATA_consume_io_request(Completion_Queue_Entry* cqe) {
   consume_requests.push(cqe);
   if (consume_requests.size() == 1) {
-    Simulator->Register_sim_event(
-        Simulator->Time() + hba_processing_delay, this, NULL,
-        static_cast<int>(HBA_Sim_Events::CONSUME_IO_REQUEST));
+    Simulator->Register_sim_event(Simulator->Time() + hba_processing_delay, this, NULL,
+                                  static_cast<int>(HBA_Sim_Events::CONSUME_IO_REQUEST));
   }
 }
 
 Submission_Queue_Entry* SATA_HBA::Read_ncq_entry(uint64_t address) {
   Submission_Queue_Entry* ncq_entry = new Submission_Queue_Entry;
   Host_IO_Request* request = request_queue_in_memory[(
-      uint16_t)((address - sata_ncq.Submission_queue_memory_base_address) /
-                sizeof(Submission_Queue_Entry))];
+      uint16_t)((address - sata_ncq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
 
   if (request == NULL) {
-    throw std::invalid_argument(
-        "SATA HBA: Request to access an NCQ entry that does not exist.");
+    throw std::invalid_argument("SATA HBA: Request to access an NCQ entry that does not exist.");
   }
 
   ncq_entry->Command_Identifier = request->IO_queue_info;
@@ -173,21 +162,17 @@ Submission_Queue_Entry* SATA_HBA::Read_ncq_entry(uint64_t address) {
     ncq_entry->Opcode = NVME_READ_OPCODE;
     ncq_entry->Command_specific[0] = (uint32_t)request->Start_LBA;
     ncq_entry->Command_specific[1] = (uint32_t)(request->Start_LBA >> 32);
-    ncq_entry->Command_specific[2] =
-        ((uint32_t)((uint16_t)request->LBA_count)) & (uint32_t)(0x0000ffff);
-    ncq_entry->PRP_entry_1 =
-        (DATA_MEMORY_REGION);  // Dummy addresses, just to emulate data
-                               // read/write access
+    ncq_entry->Command_specific[2] = ((uint32_t)((uint16_t)request->LBA_count)) & (uint32_t)(0x0000ffff);
+    ncq_entry->PRP_entry_1 = (DATA_MEMORY_REGION);           // Dummy addresses, just to emulate data
+                                                             // read/write access
     ncq_entry->PRP_entry_2 = (DATA_MEMORY_REGION + 0x1000);  // Dummy addresses
   } else {
     ncq_entry->Opcode = NVME_WRITE_OPCODE;
     ncq_entry->Command_specific[0] = (uint32_t)request->Start_LBA;
     ncq_entry->Command_specific[1] = (uint32_t)(request->Start_LBA >> 32);
-    ncq_entry->Command_specific[2] =
-        ((uint32_t)((uint16_t)request->LBA_count)) & (uint32_t)(0x0000ffff);
-    ncq_entry->PRP_entry_1 =
-        (DATA_MEMORY_REGION);  // Dummy addresses, just to emulate data
-                               // read/write access
+    ncq_entry->Command_specific[2] = ((uint32_t)((uint16_t)request->LBA_count)) & (uint32_t)(0x0000ffff);
+    ncq_entry->PRP_entry_1 = (DATA_MEMORY_REGION);           // Dummy addresses, just to emulate data
+                                                             // read/write access
     ncq_entry->PRP_entry_2 = (DATA_MEMORY_REGION + 0x1000);  // Dummy addresses
   }
 
@@ -199,21 +184,15 @@ void SATA_HBA::Update_and_submit_ncq_completion_info() {
   if (sata_ncq.Completion_queue_head == sata_ncq.Completion_queue_size) {
     sata_ncq.Completion_queue_head = 0;
   }
-  pcie_root_complex->Write_to_device(
-      sata_ncq.Completion_head_register_address_on_device,
-      sata_ncq.Completion_queue_head);  // Based on NVMe protocol definition,
-                                        // the updated head pointer should be
-                                        // informed to the device
+  pcie_root_complex->Write_to_device(sata_ncq.Completion_head_register_address_on_device,
+                                     sata_ncq.Completion_queue_head);  // Based on NVMe protocol definition,
+                                                                       // the updated head pointer should be
+                                                                       // informed to the device
 }
 
 const NCQ_Control_Structure* SATA_HBA::Get_sata_ncq_info() { return &sata_ncq; }
 
-void SATA_HBA::Set_io_flows(
-    std::vector<Host_Components::IO_Flow_Base*>* IO_flows) {
-  this->IO_flows = IO_flows;
-}
+void SATA_HBA::Set_io_flows(std::vector<Host_Components::IO_Flow_Base*>* IO_flows) { this->IO_flows = IO_flows; }
 
-void SATA_HBA::Set_root_complex(PCIe_Root_Complex* pcie_root_complex) {
-  this->pcie_root_complex = pcie_root_complex;
-}
+void SATA_HBA::Set_root_complex(PCIe_Root_Complex* pcie_root_complex) { this->pcie_root_complex = pcie_root_complex; }
 }  // namespace Host_Components

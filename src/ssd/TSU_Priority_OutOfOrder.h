@@ -22,15 +22,11 @@ class FTL;
  */
 class TSU_Priority_OutOfOrder : public TSU_Base {
  public:
-  TSU_Priority_OutOfOrder(const sim_object_id_type& id, FTL* ftl,
-                          NVM_PHY_ONFI_NVDDR2* NVMController,
-                          unsigned int Channel_no,
-                          unsigned int chip_no_per_channel,
-                          unsigned int DieNoPerChip, unsigned int PlaneNoPerDie,
-                          sim_time_type WriteReasonableSuspensionTimeForRead,
+  TSU_Priority_OutOfOrder(const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI_NVDDR2* NVMController,
+                          unsigned int Channel_no, unsigned int chip_no_per_channel, unsigned int DieNoPerChip,
+                          unsigned int PlaneNoPerDie, sim_time_type WriteReasonableSuspensionTimeForRead,
                           sim_time_type EraseReasonableSuspensionTimeForRead,
-                          sim_time_type EraseReasonableSuspensionTimeForWrite,
-                          bool EraseSuspensionEnabled,
+                          sim_time_type EraseReasonableSuspensionTimeForWrite, bool EraseSuspensionEnabled,
                           bool ProgramSuspensionEnabled);
   ~TSU_Priority_OutOfOrder();
 
@@ -39,8 +35,7 @@ class TSU_Priority_OutOfOrder : public TSU_Base {
   void Start_simulation();
   void Validate_simulation_config();
   void Execute_simulator_event(MQSimEngine::Sim_Event*);
-  void Report_results_in_XML(std::string name_prefix,
-                             Utils::XmlWriter& xmlwriter);
+  void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
 
  private:
   Flash_Transaction_Queue*** UserReadTRQueue;
@@ -58,10 +53,8 @@ class TSU_Priority_OutOfOrder : public TSU_Base {
   bool service_read_transaction(NVM::FlashMemory::Flash_Chip* chip);
   bool service_write_transaction(NVM::FlashMemory::Flash_Chip* chip);
   bool service_erase_transaction(NVM::FlashMemory::Flash_Chip* chip);
-  Flash_Transaction_Queue* get_next_read_service_queue(
-      NVM::FlashMemory::Flash_Chip* chip);
-  Flash_Transaction_Queue* get_next_write_service_queue(
-      NVM::FlashMemory::Flash_Chip* chip);
+  Flash_Transaction_Queue* get_next_read_service_queue(NVM::FlashMemory::Flash_Chip* chip);
+  Flash_Transaction_Queue* get_next_write_service_queue(NVM::FlashMemory::Flash_Chip* chip);
 };
 }  // namespace SSD_Components
 

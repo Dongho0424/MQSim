@@ -29,8 +29,7 @@ void Engine::AddObject(Sim_Object* obj) {
   if (_ObjectList.find(obj->ID()) != _ObjectList.end()) {
     throw std::invalid_argument("Duplicate object key: " + obj->ID());
   }
-  _ObjectList.insert(
-      std::pair<sim_object_id_type, Sim_Object*>(obj->ID(), obj));
+  _ObjectList.insert(std::pair<sim_object_id_type, Sim_Object*>(obj->ID(), obj));
 }
 
 Sim_Object* Engine::GetObject(sim_object_id_type object_id) {
@@ -43,8 +42,7 @@ Sim_Object* Engine::GetObject(sim_object_id_type object_id) {
 }
 
 void Engine::RemoveObject(Sim_Object* obj) {
-  std::unordered_map<sim_object_id_type, Sim_Object*>::iterator it =
-      _ObjectList.find(obj->ID());
+  std::unordered_map<sim_object_id_type, Sim_Object*>::iterator it = _ObjectList.find(obj->ID());
   if (it == _ObjectList.end()) {
     throw std::invalid_argument("Removing an unregistered object.");
   }
@@ -55,22 +53,19 @@ void Engine::RemoveObject(Sim_Object* obj) {
 void Engine::Start_simulation() {
   started = true;
 
-  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj =
-           _ObjectList.begin();
+  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj = _ObjectList.begin();
        obj != _ObjectList.end(); ++obj) {
     if (!obj->second->IsTriggersSetUp()) {
       obj->second->Setup_triggers();
     }
   }
 
-  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj =
-           _ObjectList.begin();
+  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj = _ObjectList.begin();
        obj != _ObjectList.end(); ++obj) {
     obj->second->Validate_simulation_config();
   }
 
-  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj =
-           _ObjectList.begin();
+  for (std::unordered_map<sim_object_id_type, Sim_Object*>::iterator obj = _ObjectList.begin();
        obj != _ObjectList.end(); ++obj) {
     obj->second->Start_simulation();
   }
@@ -104,9 +99,7 @@ bool Engine::Has_started() { return started; }
 
 sim_time_type Engine::Time() { return _sim_time; }
 
-Sim_Event* Engine::Register_sim_event(sim_time_type fireTime,
-                                      Sim_Object* targetObject,
-                                      void* parameters, int type) {
+Sim_Event* Engine::Register_sim_event(sim_time_type fireTime, Sim_Object* targetObject, void* parameters, int type) {
   Sim_Event* ev = new Sim_Event(fireTime, targetObject, parameters, type);
   DEBUG("RegisterEvent " << fireTime << " " << targetObject)
   _EventList->Insert_sim_event(ev);

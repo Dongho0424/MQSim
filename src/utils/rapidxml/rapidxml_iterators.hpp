@@ -78,8 +78,7 @@ class attribute_iterator {
 
   attribute_iterator() : m_attribute(0) {}
 
-  attribute_iterator(xml_node<Ch>* node)
-      : m_attribute(node->first_attribute()) {}
+  attribute_iterator(xml_node<Ch>* node) : m_attribute(node->first_attribute()) {}
 
   reference operator*() const {
     assert(m_attribute);
@@ -115,13 +114,9 @@ class attribute_iterator {
     return tmp;
   }
 
-  bool operator==(const attribute_iterator<Ch>& rhs) {
-    return m_attribute == rhs.m_attribute;
-  }
+  bool operator==(const attribute_iterator<Ch>& rhs) { return m_attribute == rhs.m_attribute; }
 
-  bool operator!=(const attribute_iterator<Ch>& rhs) {
-    return m_attribute != rhs.m_attribute;
-  }
+  bool operator!=(const attribute_iterator<Ch>& rhs) { return m_attribute != rhs.m_attribute; }
 
  private:
   xml_attribute<Ch>* m_attribute;

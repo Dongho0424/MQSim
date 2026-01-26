@@ -92,23 +92,18 @@ void IO_Flow_Parameter_Set::XML_serialize(Utils::XmlWriter& xmlwriter) {
 
 void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<>* node) {
   try {
-    for (auto param = node->first_node(); param;
-         param = param->next_sibling()) {
+    for (auto param = node->first_node(); param; param = param->next_sibling()) {
       if (strcmp(param->name(), "Device_Level_Data_Caching_Mode") == 0) {
         std::string val = param->value();
         std::transform(val.begin(), val.end(), val.begin(), ::toupper);
         if (strcmp(val.c_str(), "TURNED_OFF") == 0) {
-          Device_Level_Data_Caching_Mode =
-              SSD_Components::Caching_Mode::TURNED_OFF;
+          Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::TURNED_OFF;
         } else if (strcmp(val.c_str(), "WRITE_CACHE") == 0) {
-          Device_Level_Data_Caching_Mode =
-              SSD_Components::Caching_Mode::WRITE_CACHE;
+          Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_CACHE;
         } else if (strcmp(val.c_str(), "READ_CACHE") == 0) {
-          Device_Level_Data_Caching_Mode =
-              SSD_Components::Caching_Mode::READ_CACHE;
+          Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::READ_CACHE;
         } else if (strcmp(val.c_str(), "WRITE_READ_CACHE") == 0) {
-          Device_Level_Data_Caching_Mode =
-              SSD_Components::Caching_Mode::WRITE_READ_CACHE;
+          Device_Level_Data_Caching_Mode = SSD_Components::Caching_Mode::WRITE_READ_CACHE;
         } else {
           PRINT_ERROR("Wrong caching mode definition for input flow")
         }
@@ -220,8 +215,7 @@ void IO_Flow_Parameter_Set::XML_deserialize(rapidxml::xml_node<>* node) {
   }
 }
 
-void IO_Flow_Parameter_Set_Synthetic::XML_serialize(
-    Utils::XmlWriter& xmlwriter) {
+void IO_Flow_Parameter_Set_Synthetic::XML_serialize(Utils::XmlWriter& xmlwriter) {
   std::string tmp;
   tmp = "IO_Flow_Parameter_Set_Synthetic";
   xmlwriter.Write_open_tag(tmp);
@@ -314,12 +308,10 @@ void IO_Flow_Parameter_Set_Synthetic::XML_serialize(
   xmlwriter.Write_close_tag();
 }
 
-void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
-    rapidxml::xml_node<>* node) {
+void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(rapidxml::xml_node<>* node) {
   IO_Flow_Parameter_Set::XML_deserialize(node);
   try {
-    for (auto param = node->first_node(); param;
-         param = param->next_sibling()) {
+    for (auto param = node->first_node(); param; param = param->next_sibling()) {
       if (strcmp(param->name(), "Working_Set_Percentage") == 0) {
         std::string val = param->value();
         Working_Set_Percentage = std::stoi(val);
@@ -331,8 +323,7 @@ void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
         } else if (strcmp(val.c_str(), "QUEUE_DEPTH") == 0) {
           Synthetic_Generator_Type = Utils::Request_Generator_Type::QUEUE_DEPTH;
         } else {
-          PRINT_ERROR(
-              "Unknown synthetic generator type specified in the input file")
+          PRINT_ERROR("Unknown synthetic generator type specified in the input file")
         }
       } else if (strcmp(param->name(), "Read_Percentage") == 0) {
         std::string val = param->value();
@@ -343,14 +334,11 @@ void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
         if (strcmp(val.c_str(), "STREAMING") == 0) {
           Address_Distribution = Utils::Address_Distribution_Type::STREAMING;
         } else if (strcmp(val.c_str(), "RANDOM_HOTCOLD") == 0) {
-          Address_Distribution =
-              Utils::Address_Distribution_Type::RANDOM_HOTCOLD;
+          Address_Distribution = Utils::Address_Distribution_Type::RANDOM_HOTCOLD;
         } else if (strcmp(val.c_str(), "RANDOM_UNIFORM") == 0) {
-          Address_Distribution =
-              Utils::Address_Distribution_Type::RANDOM_UNIFORM;
+          Address_Distribution = Utils::Address_Distribution_Type::RANDOM_UNIFORM;
         } else {
-          PRINT_ERROR(
-              "Wrong address distribution type for input synthetic flow")
+          PRINT_ERROR("Wrong address distribution type for input synthetic flow")
         }
       } else if (strcmp(param->name(), "Percentage_of_Hot_Region") == 0) {
         std::string val = param->value();
@@ -358,8 +346,7 @@ void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
       } else if (strcmp(param->name(), "Generated_Aligned_Addresses") == 0) {
         std::string val = param->value();
         std::transform(val.begin(), val.end(), val.begin(), ::toupper);
-        Generated_Aligned_Addresses =
-            (val.compare("FALSE") == 0 ? false : true);
+        Generated_Aligned_Addresses = (val.compare("FALSE") == 0 ? false : true);
       } else if (strcmp(param->name(), "Address_Alignment_Unit") == 0) {
         std::string val = param->value();
         Address_Alignment_Unit = std::stoi(val);
@@ -367,14 +354,11 @@ void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
         std::string val = param->value();
         std::transform(val.begin(), val.end(), val.begin(), ::toupper);
         if (strcmp(val.c_str(), "FIXED") == 0) {
-          Request_Size_Distribution =
-              Utils::Request_Size_Distribution_Type::FIXED;
+          Request_Size_Distribution = Utils::Request_Size_Distribution_Type::FIXED;
         } else if (strcmp(val.c_str(), "NORMAL") == 0) {
-          Request_Size_Distribution =
-              Utils::Request_Size_Distribution_Type::NORMAL;
+          Request_Size_Distribution = Utils::Request_Size_Distribution_Type::NORMAL;
         } else {
-          PRINT_ERROR(
-              "Wrong request size distribution type for input synthetic flow")
+          PRINT_ERROR("Wrong request size distribution type for input synthetic flow")
         }
       } else if (strcmp(param->name(), "Average_Request_Size") == 0) {
         std::string val = param->value();
@@ -404,8 +388,7 @@ void IO_Flow_Parameter_Set_Synthetic::XML_deserialize(
   }
 }
 
-void IO_Flow_Parameter_Set_Trace_Based::XML_serialize(
-    Utils::XmlWriter& xmlwriter) {
+void IO_Flow_Parameter_Set_Trace_Based::XML_serialize(Utils::XmlWriter& xmlwriter) {
   std::string tmp = "IO_Flow_Parameter_Set_Trace_Based";
   xmlwriter.Write_open_tag(tmp);
   IO_Flow_Parameter_Set::XML_serialize(xmlwriter);
@@ -439,13 +422,11 @@ void IO_Flow_Parameter_Set_Trace_Based::XML_serialize(
   xmlwriter.Write_close_tag();
 }
 
-void IO_Flow_Parameter_Set_Trace_Based::XML_deserialize(
-    rapidxml::xml_node<>* node) {
+void IO_Flow_Parameter_Set_Trace_Based::XML_deserialize(rapidxml::xml_node<>* node) {
   IO_Flow_Parameter_Set::XML_deserialize(node);
 
   try {
-    for (auto param = node->first_node(); param;
-         param = param->next_sibling()) {
+    for (auto param = node->first_node(); param; param = param->next_sibling()) {
       if (strcmp(param->name(), "Relay_Count") == 0) {
         std::string val = param->value();
         Relay_Count = std::stoi(val);

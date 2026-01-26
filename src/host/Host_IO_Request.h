@@ -8,8 +8,7 @@ enum class Host_IO_Request_Type { READ, WRITE };
 class Host_IO_Request {
  public:
   sim_time_type Arrival_time;  // The time that the request has been generated
-  sim_time_type
-      Enqueue_time;  // The time that the request enqueued into the I/O queue
+  sim_time_type Enqueue_time;  // The time that the request enqueued into the I/O queue
   LHA_type Start_LBA;
   unsigned int LBA_count;
   Host_IO_Request_Type Type;

@@ -52,8 +52,7 @@ class file {
     // Load data and add terminating 0
     stream.unsetf(ios::skipws);
     m_data.assign(istreambuf_iterator<Ch>(stream), istreambuf_iterator<Ch>());
-    if (stream.fail() || stream.bad())
-      throw runtime_error("error reading stream");
+    if (stream.fail() || stream.bad()) throw runtime_error("error reading stream");
     m_data.push_back(0);
   }
 

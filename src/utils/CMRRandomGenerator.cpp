@@ -9,9 +9,8 @@ double CMRRandomGenerator::a13 = -810728.0;
 double CMRRandomGenerator::a21 = 527612.0;
 double CMRRandomGenerator::a23 = -1370589.0;
 
-double CMRRandomGenerator::a[2][3][3] = {
-    {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a13, a12, 0.0}},
-    {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a23, 0.0, a21}}};
+double CMRRandomGenerator::a[2][3][3] = {{{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a13, a12, 0.0}},
+                                         {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {a23, 0.0, a21}}};
 
 double CMRRandomGenerator::m[2] = {m1, m2};
 double CMRRandomGenerator::init_s[2][3] = {{1.0, 1.0, 1.0}, {1.0, 1.0, 1.0}};
