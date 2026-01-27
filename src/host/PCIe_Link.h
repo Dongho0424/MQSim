@@ -30,10 +30,10 @@ class PCIe_Link : public MQSimEngine::Sim_Object {
  private:
   PCIe_Root_Complex* root_complex;
   PCIe_Switch* pcie_switch;
-  double lane_bandwidth_GBPs;  // GB/s
-  int lane_count;
-  int tlp_header_size, tlp_max_payload_size;
-  int dllp_ovehread, ph_overhead;
+  double lane_bandwidth_GBPs;                 // GB/s, from ssdconfig
+  int lane_count;                             // from ssdconfig
+  int tlp_header_size, tlp_max_payload_size;  // 20, 128
+  int dllp_ovehread, ph_overhead;             // 6, 2
   // sim_time_type byte_transfer_delay_per_lane;//Since the transfer delay of
   // one byte may take lower than one nano-second, we use 8-byte metric
   int packet_overhead;
@@ -48,11 +48,13 @@ class PCIe_Link : public MQSimEngine::Sim_Object {
             (message->Payload_size % tlp_max_payload_size == 0
                  ? 0
                  : message->Payload_size % tlp_max_payload_size + packet_overhead);
+        // ceiling division
         return (sim_time_type)(((double)((total_transfered_bytes / lane_count) +
                                          (total_transfered_bytes % lane_count == 0 ? 0 : 1))) /
                                lane_bandwidth_GBPs);
       }
       case PCIe_Message_Type::READ_REQ:
+        // ceiling division
         return (
             sim_time_type)((((packet_overhead + 4) / lane_count) + ((packet_overhead + 4) % lane_count == 0 ? 0 : 1)) /
                            lane_bandwidth_GBPs);
@@ -61,6 +63,7 @@ class PCIe_Link : public MQSimEngine::Sim_Object {
     return 0;
   }
 
+  // to host
   std::queue<PCIe_Message*> Message_buffer_toward_root_complex;
 };
 }  // namespace Host_Components

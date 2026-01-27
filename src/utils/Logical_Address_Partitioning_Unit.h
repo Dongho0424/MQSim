@@ -6,7 +6,7 @@
 #include "../ssd/Host_Interface_Defs.h"
 #include "../ssd/SSD_Defs.h"
 
-/* MQSim requires the logical address space of the SSD device to be partitioned
+/* MQSim requires the logical host address space of the SSD device to be partitioned
 among the concurrent flows. In fact, two different storage traces may access the
 same logical address, but this logical address should not be assumed to be
 identical when the traces are executed together.
@@ -37,7 +37,7 @@ class Logical_Address_Partitioning_Unit {
 
  private:
   static HostInterface_Types hostinterface_type;
-  static int**** resource_list;
+  static int**** resource_list;  // 4D array
   static std::vector<std::vector<flash_channel_ID_type>> stream_channel_ids;
   static std::vector<std::vector<flash_chip_ID_type>> stream_chip_ids;
   static std::vector<std::vector<flash_die_ID_type>> stream_die_ids;

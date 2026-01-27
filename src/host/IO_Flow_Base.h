@@ -20,11 +20,14 @@
 
 namespace Host_Components {
 struct NVMe_Queue_Pair {
+  // SQ
   uint16_t Submission_queue_head;
   uint16_t Submission_queue_tail;
   uint16_t Submission_queue_size;
   uint64_t Submission_tail_register_address_on_device;
   uint64_t Submission_queue_memory_base_address;
+
+  // CQ
   uint16_t Completion_queue_head;
   uint16_t Completion_queue_tail;
   uint16_t Completion_queue_size;
@@ -92,15 +95,16 @@ class IO_Flow_Base : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Rep
   IO_Flow_Priority_Class::Priority priority_class;
   NVMe_Queue_Pair nvme_queue_pair;
   uint16_t io_queue_id;
-  uint16_t nvme_submission_queue_size;
-  uint16_t nvme_completion_queue_size;
+  uint16_t nvme_submission_queue_size;  // IO queue depth
+  uint16_t nvme_completion_queue_size;  // IO queue depth
   std::set<uint16_t> available_command_ids;
   std::vector<Host_IO_Request*> request_queue_in_memory;
-  std::list<Host_IO_Request*> waiting_requests;  // The I/O requests that are still waiting to be
-                                                 // enqueued in the I/O queue (the I/O queue is full)
-  std::unordered_map<sim_time_type, Host_IO_Request*>
-      nvme_software_request_queue;  // The I/O requests that are enqueued in the
-                                    // I/O queue of the SSD device
+  // The I/O requests that are still waiting to be
+  // enqueued in the I/O queue (the I/O queue is full)
+  std::list<Host_IO_Request*> waiting_requests;
+  // The I/O requests that are enqueued in the
+  // I/O queue of the SSD device
+  std::unordered_map<sim_time_type, Host_IO_Request*> nvme_software_request_queue;
   void NVMe_update_and_submit_completion_queue_tail();
 
   // Variables used to collect statistics

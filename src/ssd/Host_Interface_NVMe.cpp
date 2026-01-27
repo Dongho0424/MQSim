@@ -39,10 +39,12 @@ inline void Input_Stream_Manager_NVMe::Submission_queue_tail_pointer_update(stre
   if (((Input_Stream_NVMe*)input_streams[stream_id])->On_the_fly_requests < Queue_fetch_size) {
     ((Host_Interface_NVMe*)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
     ((Input_Stream_NVMe*)input_streams[stream_id])->On_the_fly_requests++;
-    ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head++;  // Update submission queue head after starting
-                                                                        // fetch request
+    // Update submission queue head after starting fetch request
+    ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head++;
+
+    // Circular queue implementation
     if (((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head ==
-        ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_queue_size) {  // Circular queue implementation
+        ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_queue_size) {
       ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head = 0;
     }
   }
@@ -63,9 +65,9 @@ inline void Input_Stream_Manager_NVMe::Completion_queue_head_pointer_update(stre
 
 inline void Input_Stream_Manager_NVMe::Handle_new_arrived_request(User_Request* request) {
   ((Input_Stream_NVMe*)input_streams[request->Stream_id])->Submission_head_informed_to_host++;
+  // Circular queue implementation
   if (((Input_Stream_NVMe*)input_streams[request->Stream_id])->Submission_head_informed_to_host ==
-      ((Input_Stream_NVMe*)input_streams[request->Stream_id])
-          ->Submission_queue_size) {  // Circular queue implementation
+      ((Input_Stream_NVMe*)input_streams[request->Stream_id])->Submission_queue_size) {
     ((Input_Stream_NVMe*)input_streams[request->Stream_id])->Submission_head_informed_to_host = 0;
   }
   if (request->Type == UserRequestType::READ) {
@@ -105,8 +107,9 @@ inline void Input_Stream_Manager_NVMe::Handle_serviced_request(User_Request* req
       ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_tail) {
     ((Host_Interface_NVMe*)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
     ((Input_Stream_NVMe*)input_streams[stream_id])->On_the_fly_requests++;
-    ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head++;  // Update submission queue head after starting
-                                                                        // fetch request
+    // Update submission queue head after starting fetch request
+    ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head++;
+
     if (((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head ==
         ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_queue_size) {  // Circular queue implementation
       ((Input_Stream_NVMe*)input_streams[stream_id])->Submission_head = 0;
@@ -119,15 +122,15 @@ inline void Input_Stream_Manager_NVMe::Handle_serviced_request(User_Request* req
     // completion queue is full
     if (((Input_Stream_NVMe*)input_streams[stream_id])->Completion_tail + 1 ==
         ((Input_Stream_NVMe*)input_streams[stream_id])->Completion_head) {
-      ((Input_Stream_NVMe*)input_streams[stream_id])
-          ->Completed_user_requests.push_back(request);  // Wait while the completion queue is full
+      // Wait while the completion queue is full
+      ((Input_Stream_NVMe*)input_streams[stream_id])->Completed_user_requests.push_back(request);
       return;
     }
   } else if (((Input_Stream_NVMe*)input_streams[stream_id])->Completion_tail -
                  ((Input_Stream_NVMe*)input_streams[stream_id])->Completion_head ==
              ((Input_Stream_NVMe*)input_streams[stream_id])->Completion_queue_size - 1) {
-    ((Input_Stream_NVMe*)input_streams[stream_id])
-        ->Completed_user_requests.push_back(request);  // Wait while the completion queue is full
+    // Wait while the completion queue is full
+    ((Input_Stream_NVMe*)input_streams[stream_id])->Completed_user_requests.push_back(request);
     return;
   }
 
@@ -175,10 +178,9 @@ void Input_Stream_Manager_NVMe::segment_user_request(User_Request* user_request)
             (lsa % (((Input_Stream_NVMe*)input_streams[user_request->Stream_id])->End_logical_sector_address -
                     (((Input_Stream_NVMe*)input_streams[user_request->Stream_id])->Start_logical_sector_address)));
     }
-    LHA_type internal_lsa = lsa - ((Input_Stream_NVMe*)input_streams[user_request->Stream_id])
-                                      ->Start_logical_sector_address;  // For each flow, all lsa's
-                                                                       // should be translated into
-                                                                       // a range starting from zero
+    // For each flow, all lsa's should be translated into a range starting from zero
+    LHA_type internal_lsa =
+        lsa - ((Input_Stream_NVMe*)input_streams[user_request->Stream_id])->Start_logical_sector_address;
 
     transaction_size = host_interface->sectors_per_page - (unsigned int)(lsa % host_interface->sectors_per_page);
     if (handled_sectors_count + transaction_size >= req_size) {

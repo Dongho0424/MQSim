@@ -48,6 +48,7 @@ Host_IO_Request* IO_Flow_Trace_Based::Generate_next_request() {
   char* pEnd;
   request->LBA_count = std::strtoul(current_trace_line[ASCIITraceSizeColumn].c_str(), &pEnd, 0);
 
+  // LBA 보정. start_lsa_on_device ~ end_lsa_on_device 사이에 들어오도록
   request->Start_LBA = std::strtoull(current_trace_line[ASCIITraceAddressColumn].c_str(), &pEnd, 0);
   if (request->Start_LBA <= (end_lsa_on_device - start_lsa_on_device)) {
     request->Start_LBA += start_lsa_on_device;

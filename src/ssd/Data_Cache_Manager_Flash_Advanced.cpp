@@ -205,9 +205,9 @@ void Data_Cache_Manager_Flash_Advanced::process_new_user_request(User_Request* u
                 tr->read_sectors_bitmap;
             if (available_sectors_bitmap == tr->read_sectors_bitmap) {
               user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(tr->read_sectors_bitmap);
-              user_request->Transaction_list.erase(it++);  // the ++ operation should happen here, otherwise the
-                                                           // iterator will be part of the list after erasing it
-                                                           // from the list
+              // the ++ operation should happen here, otherwise the iterator will be part of the list after erasing it
+              // from the list
+              user_request->Transaction_list.erase(it++);
             } else if (available_sectors_bitmap != 0) {
               user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(available_sectors_bitmap);
               tr->read_sectors_bitmap = (tr->read_sectors_bitmap & ~available_sectors_bitmap);

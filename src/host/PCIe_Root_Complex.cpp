@@ -5,6 +5,7 @@ PCIe_Root_Complex::PCIe_Root_Complex(PCIe_Link* pcie_link, HostInterface_Types S
                                      std::vector<Host_Components::IO_Flow_Base*>* IO_flows)
     : pcie_link(pcie_link), SSD_device_type(SSD_device_type), sata_hba(sata_hba), IO_flows(IO_flows) {}
 
+// NVMe Completion Queue Entry(CQE) 기록
 void PCIe_Root_Complex::Write_to_memory(const uint64_t address, const void* payload) {
   // This is a request to write back a read request data into memory (in modern
   // systems the write is done to LLC)
@@ -36,6 +37,7 @@ void PCIe_Root_Complex::Write_to_device(uint64_t address, uint16_t write_value) 
   pcie_link->Deliver(pcie_message);
 }
 
+// NVMe Submission Queue Entry(SQE)를 가져오는 데 사용
 void PCIe_Root_Complex::Read_from_memory(const uint64_t address, const unsigned int read_size) {
   PCIe_Message* new_pcie_message = new Host_Components::PCIe_Message;
   new_pcie_message->Type = PCIe_Message_Type::READ_COMP;

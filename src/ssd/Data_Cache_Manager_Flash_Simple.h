@@ -32,15 +32,14 @@ class Data_Cache_Manager_Flash_Simple : public Data_Cache_Manager_Base {
   unsigned int sector_no_per_page;
   Data_Cache_Flash* data_cache;
 
+  // User Request 처리의 메인 로직.
   void process_new_user_request(User_Request* user_request);
-  void write_to_destage_buffer(User_Request* user_request);  // Used in the WRITE_CACHE and WRITE_READ_CACHE modes
-                                                             // in which the DRAM space is used as a destage buffer
-  std::queue<Memory_Transfer_Info*>* dram_execution_queue;   // The list of DRAM transfers that are waiting to
-                                                             // be executed
-  std::list<User_Request*>* waiting_user_requests_queue_for_dram_free_slot;  // The list of user
-                                                                             // requests that are
-                                                                             // waiting for free space
-                                                                             // in DRAM
+  // Used in the WRITE_CACHE and WRITE_READ_CACHE modes in which the DRAM space is used as a destage buffer
+  void write_to_destage_buffer(User_Request* user_request);
+  // The list of DRAM transfers that are waiting to be executed
+  std::queue<Memory_Transfer_Info*>* dram_execution_queue;
+  // The list of user requests that are waiting for free space in DRAM
+  std::list<User_Request*>* waiting_user_requests_queue_for_dram_free_slot;
   int request_queue_turn;
   unsigned int back_pressure_buffer_max_depth;
   unsigned int back_pressure_buffer_depth;
@@ -48,6 +47,7 @@ class Data_Cache_Manager_Flash_Simple : public Data_Cache_Manager_Base {
   sim_time_type bloom_filter_reset_step = 1000000000;
   sim_time_type next_bloom_filter_reset_milestone = 0;
 
+  // Flash 메모리(PHY)에서 트랜잭션 처리가 완료되었다는 시그널을 핸들링.
   static void handle_transaction_serviced_signal_from_PHY(NVM_Transaction_Flash* transaction);
   void service_dram_access_request(Memory_Transfer_Info* request_info);
 };

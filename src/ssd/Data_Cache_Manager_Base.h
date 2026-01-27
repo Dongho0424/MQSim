@@ -36,10 +36,12 @@ class Data_Cache_Manager_Base : public MQSimEngine::Sim_Object {
   void Start_simulation();
   void Validate_simulation_config();
 
+  // type def UserRequestServicedSignalHanderType as func pointer: (User_Request*) -> Void
   typedef void (*UserRequestServicedSignalHanderType)(User_Request*);
   void Connect_to_user_request_serviced_signal(UserRequestServicedSignalHanderType);
   typedef void (*MemoryTransactionServicedSignalHanderType)(NVM_Transaction*);
   void Connect_to_user_memory_transaction_serviced_signal(MemoryTransactionServicedSignalHanderType);
+
   void Set_host_interface(Host_Interface_Base* host_interface);
   virtual void Do_warmup(std::vector<Utils::Workload_Statistics*> workload_stats) = 0;
 
@@ -53,11 +55,11 @@ class Data_Cache_Manager_Base : public MQSimEngine::Sim_Object {
   double dram_burst_transfer_time_ddr;  // The transfer time of two bursts,
                                         // changed from sim_time_type to double
                                         // to increase precision
-  sim_time_type dram_tRCD, dram_tCL,
-      dram_tRP;  // DRAM access parameters in nano-seconds
+  // DRAM access parameters in nano-seconds
+  sim_time_type dram_tRCD, dram_tCL, dram_tRP;
   Cache_Sharing_Mode sharing_mode;
   static Caching_Mode* caching_mode_per_input_stream;
-  unsigned int stream_count;
+  unsigned int stream_count;  // io_flows.size()
 
   std::vector<UserRequestServicedSignalHanderType> connected_user_request_serviced_signal_handlers;
   void broadcast_user_request_serviced_signal(User_Request* user_request);

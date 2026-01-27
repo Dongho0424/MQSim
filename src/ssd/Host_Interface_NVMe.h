@@ -115,7 +115,7 @@ class Host_Interface_NVMe : public Host_Interface_Base {
   void Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& xmlwriter);
 
  private:
-  uint16_t submission_queue_depth, completion_queue_depth;
+  uint16_t submission_queue_depth, completion_queue_depth;  // from IO_Queue_Depth
   unsigned int no_of_input_streams;
 };
 }  // namespace SSD_Components
