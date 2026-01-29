@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <list>
+#include <queue>
 #include <set>
 #include <unordered_map>
 

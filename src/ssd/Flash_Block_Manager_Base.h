@@ -3,12 +3,15 @@
 
 #include <cstdint>
 #include <list>
+#include <map>
 #include <queue>
 #include <set>
 
 #include "../nvm_chip/flash_memory/FlashTypes.h"
 #include "../nvm_chip/flash_memory/Physical_Page_Address.h"
 #include "GC_and_WL_Unit_Base.h"
+#include "NVM_Transaction_Flash.h"
+#include "NVM_Transaction_Flash_ER.h"
 
 namespace SSD_Components {
 #define All_VALID_PAGE 0x0000000000000000ULL

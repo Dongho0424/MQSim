@@ -339,7 +339,7 @@ SSD_Device::SSD_Device(Device_Parameter_Set* parameters, std::vector<IO_Flow_Par
         caching_modes[i] = (*io_flows)[i]->Device_Level_Data_Caching_Mode;
       }
 
-      unsigned int stream_count = (unsigned int)io_flows->size();
+      stream_count = (unsigned int)io_flows->size();
       unsigned int sector_no_per_page = parameters->Flash_Parameters.Page_Capacity / SECTOR_SIZE_IN_BYTE;
       unsigned int back_pressure_buffer_max_depth = parameters->Flash_Channel_Count * parameters->Chip_No_Per_Channel *
                                                     parameters->Flash_Parameters.Die_No_Per_Chip *

@@ -5,9 +5,9 @@
 
 #include "../nvm_chip/flash_memory/FlashTypes.h"
 #include "NVM_Transaction_Flash.h"
-#include "NVM_Transaction_Flash_WR.h"
 
 namespace SSD_Components {
+class NVM_Transaction_Flash_WR;
 class NVM_Transaction_Flash_ER : public NVM_Transaction_Flash {
  public:
   NVM_Transaction_Flash_ER(Transaction_Source_Type source, stream_id_type streamID,

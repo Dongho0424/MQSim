@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -255,7 +257,7 @@ std::vector<std::vector<IO_Flow_Parameter_Set*>*>* read_workload_definitions(con
   return io_scenarios;
 }
 
-void collect_results(SSD_Device& ssd, Host_System& host, const char* output_file_path) {
+void collect_results(SSD_Device& ssd, Host_System& host, string output_file_path) {
   Utils::XmlWriter xmlwriter;
   xmlwriter.Open(output_file_path);
 
@@ -344,10 +346,14 @@ int main(int argc, char* argv[]) {
     PRINT_MESSAGE("Writing results to output file .......");
 
     string output_dir = "output/";
-    collect_results(ssd, host,
-                    (output_dir + workload_defs_file_path.substr(0, workload_defs_file_path.find_last_of(".")) +
-                     "_scenario_" + std::to_string(cntr) + ".xml")
-                        .c_str());
+    mkdir(output_dir.c_str(), 0755);
+
+    time_t now = time(0);
+    struct tm* timeinfo = localtime(&now);
+    char timestamp[20];
+    strftime(timestamp, sizeof(timestamp), "%y%m%d_%H%M%S", timeinfo);
+    string output_path = output_dir + timestamp + "_scen_" + std::to_string(cntr) + ".xml";
+    collect_results(ssd, host, output_path);
   }
 
   return 0;
