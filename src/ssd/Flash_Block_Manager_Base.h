@@ -53,12 +53,12 @@ class PlaneBookKeepingType {
   unsigned int Invalid_pages_count;
   Block_Pool_Slot_Type* Blocks;
   std::multimap<unsigned int, Block_Pool_Slot_Type*> Free_block_pool;
-  Block_Pool_Slot_Type **Data_wf,
-      **GC_wf;                                          // The write frontier blocks for data and GC pages. MQSim adopts
-                                                        // Double Write Frontier approach for user and GC writes which
-                                                        // is shown very advantages in: B. Van Houdt, "On the necessity
-                                                        // of hot and cold data identification to reduce the write
-                                                        // amplification in flash - based SSDs", Perf. Eval., 2014
+  // The write frontier blocks for data and GC pages. MQSim adopts
+  // Double Write Frontier approach for user and GC writes which
+  // is shown very advantages in: B. Van Houdt, "On the necessity
+  // of hot and cold data identification to reduce the write
+  // amplification in flash - based SSDs", Perf. Eval., 2014
+  Block_Pool_Slot_Type **Data_wf, **GC_wf;
   Block_Pool_Slot_Type** Translation_wf;                // The write frontier blocks for translation GC pages
   std::queue<flash_block_ID_type> Block_usage_history;  // A fifo queue that keeps track of flash blocks
                                                         // based on their usage history
@@ -101,26 +101,30 @@ class Flash_Block_Manager_Base {
   unsigned int Get_min_max_erase_difference(const NVM::FlashMemory::Physical_Page_Address& plane_address);
   void Set_GC_and_WL_Unit(GC_and_WL_Unit_Base*);
   PlaneBookKeepingType* Get_plane_bookkeeping_entry(const NVM::FlashMemory::Physical_Page_Address& plane_address);
-  bool Block_has_ongoing_gc_wl(const NVM::FlashMemory::Physical_Page_Address&
-                                   block_address);  // Checks if there is an ongoing gc for block_address
-  bool Can_execute_gc_wl(const NVM::FlashMemory::Physical_Page_Address&
-                             block_address);  // Checks if the gc request can be executed on
-                                              // block_address (there shouldn't be any ongoing user
-                                              // read/program requests targeting block_address)
-  void GC_WL_started(
-      const NVM::FlashMemory::Physical_Page_Address& block_address);  // Updates the block bookkeeping record
-  void GC_WL_finished(
-      const NVM::FlashMemory::Physical_Page_Address& block_address);  // Updates the block bookkeeping record
-  void Read_transaction_issued(
-      const NVM::FlashMemory::Physical_Page_Address& page_address);  // Updates the block bookkeeping record
-  void Read_transaction_serviced(
-      const NVM::FlashMemory::Physical_Page_Address& page_address);  // Updates the block bookkeeping record
-  void Program_transaction_serviced(
-      const NVM::FlashMemory::Physical_Page_Address& page_address);  // Updates the block bookkeeping record
-  bool Is_having_ongoing_program(
-      const NVM::FlashMemory::Physical_Page_Address& block_address);  // Cheks if block has any ongoing program request
-  bool Is_page_valid(Block_Pool_Slot_Type* block,
-                     flash_page_ID_type page_id);  // Make the page invalid in the block bookkeeping record
+
+  // Checks if there is an ongoing gc for block_address
+  bool Block_has_ongoing_gc_wl(const NVM::FlashMemory::Physical_Page_Address& block_address);
+
+  // Checks if the gc request can be executed on
+  // block_address (there shouldn't be any ongoing user
+  // read/program requests targeting block_address)
+  bool Can_execute_gc_wl(const NVM::FlashMemory::Physical_Page_Address& block_address);
+
+  // Updates the block bookkeeping record
+  void GC_WL_started(const NVM::FlashMemory::Physical_Page_Address& block_address);
+  // Updates the block bookkeeping record
+  void GC_WL_finished(const NVM::FlashMemory::Physical_Page_Address& block_address);
+  // Updates the block bookkeeping record
+  void Read_transaction_issued(const NVM::FlashMemory::Physical_Page_Address& page_address);
+  // Updates the block bookkeeping record
+  void Read_transaction_serviced(const NVM::FlashMemory::Physical_Page_Address& page_address);
+  // Updates the block bookkeeping record
+  void Program_transaction_serviced(const NVM::FlashMemory::Physical_Page_Address& page_address);
+  // Cheks if block has any ongoing program request
+  bool Is_having_ongoing_program(const NVM::FlashMemory::Physical_Page_Address& block_address);
+  // Make the page invalid in the block bookkeeping record
+  bool Is_page_valid(Block_Pool_Slot_Type* block, flash_page_ID_type page_id);
+
  protected:
   PlaneBookKeepingType**** plane_manager;  // Keeps track of plane block usage information
   GC_and_WL_Unit_Base* gc_and_wl_unit;

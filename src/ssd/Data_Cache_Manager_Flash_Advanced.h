@@ -14,21 +14,19 @@
 namespace SSD_Components {
 /*
 Assumed hardware structure:
-    waiting_user_requests_queue_for_dram_free_slot (a user write request is
-enqueued into this queue if DRAM is full. For a user read request, there is no
-need for DRAM free slot and thus no queue.)
+  waiting_user_requests_queue_for_dram_free_slot
+  (a user write request is enqueued into this queue if DRAM is full. For a user read request,
+  there is no need for DRAM free slot and thus no queue.)
          |
          |
         \|/
-    dram_execution_queue (the transfer request goes here if DRAM can service it
-but the memory channel is busy)
+  dram_execution_queue (the transfer request goes here if DRAM can service it but the memory channel is busy)
          |
          |
         \|/
-     --------------------------------------------------|------------------------
-    |     DRAM Data_Cache_Flash Main Data Space                   |   Back
-Pressure Space  | ---------->To the flash backend
-     --------------------------------------------------|------------------------
+-----------------------------------------------|------------------------
+|  DRAM Data_Cache_Flash Main Data Space       |   Back Pressure Space  |  ----------> To the flash backend
+-----------------------------------------------|------------------------
 */
 class Data_Cache_Manager_Flash_Advanced : public Data_Cache_Manager_Base {
  public:

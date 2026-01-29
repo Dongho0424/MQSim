@@ -33,6 +33,8 @@ class Sim_Object {
   // virtual destructor
   virtual ~Sim_Object() {}
 
+  // The function is invoked when the simulator instance starts to fire.
+  // It sequentially fires all events in its eventlist
   virtual void Execute_simulator_event(Sim_Event*) = 0;
 
  private:

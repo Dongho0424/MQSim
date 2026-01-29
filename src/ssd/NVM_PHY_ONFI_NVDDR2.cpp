@@ -551,7 +551,7 @@ inline void NVM_PHY_ONFI_NVDDR2::handle_ready_signal_from_chip(NVM::FlashMemory:
         chipBKE->WaitingReadTXCount++;
         if (_my_instance->channels[chip->ChannelID]->GetStatus() == BusChannelStatus::IDLE)
           _my_instance->transfer_read_data_from_chip(chipBKE, dieBKE, (*it));
-        else {
+        else {  // Channel Busy
           switch (dieBKE->ActiveTransactions.front()->Source) {
             case Transaction_Source_Type::CACHE:
             case Transaction_Source_Type::USERIO:

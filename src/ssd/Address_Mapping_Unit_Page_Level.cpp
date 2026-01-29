@@ -496,9 +496,8 @@ bool Address_Mapping_Unit_Page_Level::query_cmt(NVM_Transaction_Flash* transacti
   Stats::total_CMT_queries++;
   Stats::total_CMT_queries_per_stream[stream_id]++;
 
-  if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id,
-                                                   transaction->LPA))  // Either limited or unlimited CMT
-  {
+  if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, transaction->LPA)) {
+    // Either limited or unlimited CMT
     Stats::CMT_hits_per_stream[stream_id]++;
     Stats::CMT_hits++;
     if (transaction->Type == Transaction_Type::READ) {
@@ -1322,9 +1321,9 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
             transaction->UserIORequest, transaction->Content, transaction, read_pages_bitmap,
             domain->GlobalMappingTable[transaction->LPA].TimeStamp);
         Convert_ppa_to_address(old_ppa, update_read_tr->Address);
-        block_manager->Read_transaction_issued(update_read_tr->Address);  // Inform block manager about a new
-                                                                          // transaction as soon as the transaction's
-                                                                          // target address is determined
+        // Inform block manager about a new
+        // transaction as soon as the transaction's target address is determined
+        block_manager->Read_transaction_issued(update_read_tr->Address);
         block_manager->Invalidate_page_in_block(transaction->Stream_id, update_read_tr->Address);
         transaction->RelatedRead = update_read_tr;
       }

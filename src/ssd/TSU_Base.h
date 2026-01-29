@@ -82,6 +82,7 @@ class TSU_Base : public MQSimEngine::Sim_Object {
   static void handle_channel_idle_signal(flash_channel_ID_type);
   static void handle_chip_idle_signal(NVM::FlashMemory::Flash_Chip* chip);
   int opened_scheduling_reqs;
+
   void process_chip_requests(NVM::FlashMemory::Flash_Chip* chip) {
     if (!_my_instance->service_read_transaction(chip)) {
       if (!_my_instance->service_write_transaction(chip)) {

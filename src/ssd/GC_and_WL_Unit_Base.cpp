@@ -116,11 +116,12 @@ void GC_and_WL_Unit_Base::handle_transaction_serviced_signal_from_PHY(NVM_Transa
                   gc_wl_write->ExecutionMode = WriteExecutionModeType::SIMPLE;
                   gc_wl_write->RelatedErase = gc_wl_erase_tr;
                   gc_wl_read->RelatedWrite = gc_wl_write;
-                  _my_instance->tsu->Submit_transaction(gc_wl_read);  // Only the read transaction would be
-                                                                      // submitted. The Write transaction is
-                                                                      // submitted when the read transaction is
-                                                                      // finished and the LPA of the target page
-                                                                      // is determined
+                  // Only the read transaction would be
+                  // submitted. The Write transaction is
+                  // submitted when the read transaction is
+                  // finished and the LPA of the target page
+                  // is determined
+                  _my_instance->tsu->Submit_transaction(gc_wl_read);
                 }
                 gc_wl_erase_tr->Page_movement_activities.push_back(gc_wl_write);
               }

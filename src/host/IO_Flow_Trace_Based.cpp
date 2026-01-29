@@ -193,8 +193,8 @@ void IO_Flow_Trace_Based::Get_statistics(Utils::Workload_Statistics& stats,
                                                       << "\nMQSim expects request arrival times to be monotonic "
                                                          "increasing in the input trace!")
     }
-    sim_time_type diff =
-        (last_request_arrival_time - prev_time) / 1000;  // The arrival rate histogram is stored in the microsecond unit
+    // The arrival rate histogram is stored in the microsecond unit
+    sim_time_type diff = (last_request_arrival_time - prev_time) / 1000;
     sum_inter_arrival += last_request_arrival_time - prev_time;
 
     unsigned int LBA_count = std::strtoul(line_splitted[ASCIITraceSizeColumn].c_str(), &pEnd, 0);

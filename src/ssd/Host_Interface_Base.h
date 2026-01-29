@@ -121,7 +121,7 @@ class Host_Interface_Base : public MQSimEngine::Sim_Object, public MQSimEngine::
   void Consume_pcie_message(Host_Components::PCIe_Message* message) {
     if (message->Type == Host_Components::PCIe_Message_Type::READ_COMP) {
       request_fetch_unit->Process_pcie_read_message(message->Address, message->Payload, message->Payload_size);
-    } else {
+    } else {  // WRITE_REQ, READ_REQ
       request_fetch_unit->Process_pcie_write_message(message->Address, message->Payload, message->Payload_size);
     }
     delete message;

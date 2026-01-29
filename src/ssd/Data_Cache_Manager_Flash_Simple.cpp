@@ -70,7 +70,9 @@ void Data_Cache_Manager_Flash_Simple::process_new_user_request(User_Request* use
         std::list<NVM_Transaction*>::iterator it = user_request->Transaction_list.begin();
         while (it != user_request->Transaction_list.end()) {
           NVM_Transaction_Flash_RD* tr = (NVM_Transaction_Flash_RD*)(*it);
-          if (data_cache->Exists(tr->Stream_id, tr->LPA)) {  // hit
+
+          // Data Cache hit
+          if (data_cache->Exists(tr->Stream_id, tr->LPA)) {
             page_status_type available_sectors_bitmap =
                 data_cache->Get_slot(tr->Stream_id, tr->LPA).State_bitmap_of_existing_sectors & tr->read_sectors_bitmap;
 
@@ -350,17 +352,16 @@ void Data_Cache_Manager_Flash_Simple::Execute_simulator_event(MQSimEngine::Sim_E
         broadcast_user_request_serviced_signal(((User_Request*)(transfer_inf)->Related_request));
       }
       break;
-    case Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_CACHE_EVICTION_FINISHED:  // Reading data from DRAM and
-                                                                                     // writing it back to the
-                                                                                     // flash storage
+    // Reading data from DRAM and writing it back to the flash storage
+    case Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_CACHE_EVICTION_FINISHED:
       static_cast<FTL*>(nvm_firmware)
           ->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(
               *((std::list<NVM_Transaction*>*)(transfer_inf->Related_request)));
       delete (std::list<NVM_Transaction*>*)transfer_inf->Related_request;
       break;
-    case Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_CACHE_FINISHED:  // The recently read data from flash
-                                                                             // is written back to memory to
-                                                                             // support future user read requests
+
+    // The recently read data from flash is written back to memory to support future user read requests
+    case Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_CACHE_FINISHED:
       break;
   }
 

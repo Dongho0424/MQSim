@@ -83,7 +83,7 @@ class AddressMappingDomain {
                        unsigned int sectors_no_per_page);
   ~AddressMappingDomain();
 
-  /*Stores the mapping of Virtual Translation Page Number (MVPN) to Physical
+  /* Stores the mapping of Virtual Translation Page Number (MVPN) to Physical
    * Translation Page Number (MPPN). It is always kept in volatile memory.*/
   GTDEntryType* GlobalTranslationDirectory;
 
@@ -185,9 +185,9 @@ class Address_Mapping_Unit_Page_Level : public Address_Mapping_Unit_Base {
   static Address_Mapping_Unit_Page_Level* _my_instance;
   unsigned int cmt_capacity;
   AddressMappingDomain** domains;
-  unsigned int CMT_entry_size,
-      GTD_entry_size;  // In CMT MQSim stores (lpn, ppn, page status bits) but
-                       // in GTD it only stores (ppn, page status bits)
+  // In CMT MQSim stores (lpn, ppn, page status bits) but
+  // in GTD it only stores (ppn, page status bits)
+  unsigned int CMT_entry_size, GTD_entry_size;
   void allocate_plane_for_user_write(NVM_Transaction_Flash_WR* transaction);
   void allocate_page_in_plane_for_user_write(NVM_Transaction_Flash_WR* transaction, bool is_for_gc);
   void allocate_plane_for_translation_write(NVM_Transaction_Flash* transaction);

@@ -33,8 +33,8 @@ class Flash_Chip : public NVM_Chip {
   void StartCMDXfer() { this->lastTransferStart = Simulator->Time(); }
   void StartCMDDataInXfer() { this->lastTransferStart = Simulator->Time(); }
   void StartDataOutXfer() { this->lastTransferStart = Simulator->Time(); }
-  void EndCMDXfer(Flash_Command* command)  // End transferring write data to the Flash chip
-  {
+  // End transferring write data to the Flash chip
+  void EndCMDXfer(Flash_Command* command) {
     this->STAT_totalXferTime += (Simulator->Time() - this->lastTransferStart);
     if (this->idleDieNo != die_no) STAT_totalOverlappedXferExecTime += (Simulator->Time() - lastTransferStart);
     this->Dies[command->Address[0].DieID]->STAT_TotalXferTime += (Simulator->Time() - lastTransferStart);
