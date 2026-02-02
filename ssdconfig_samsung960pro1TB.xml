@@ -9,7 +9,7 @@
 	</Host_Parameter_Set>
 	<Device_Parameter_Set>
 		<Seed>424</Seed>
-		<Enabled_Preconditioning>true</Enabled_Preconditioning>
+		<Enabled_Preconditioning>false</Enabled_Preconditioning>
 		<Memory_Type>FLASH</Memory_Type>
 		<HostInterface_Type>NVME</HostInterface_Type>
 		<IO_Queue_Depth>65535</IO_Queue_Depth>
@@ -24,7 +24,7 @@
 		<Data_Cache_DRAM_tCL>13</Data_Cache_DRAM_tCL>
 		<Data_Cache_DRAM_tRP>13</Data_Cache_DRAM_tRP>
 		<Address_Mapping>PAGE_LEVEL</Address_Mapping>
-		<Ideal_Mapping_Table>true</Ideal_Mapping_Table>
+		<Ideal_Mapping_Table>false</Ideal_Mapping_Table>
 		<CMT_Capacity>1073741824</CMT_Capacity>
 		<CMT_Sharing_Mode>SHARED</CMT_Sharing_Mode>
 		<Plane_Allocation_Scheme>CWDP</Plane_Allocation_Scheme>
@@ -50,10 +50,10 @@
 			<Flash_Technology>MLC</Flash_Technology>
 			<CMD_Suspension_Support>ERASE</CMD_Suspension_Support>
 			<Page_Read_Latency_LSB>45000</Page_Read_Latency_LSB>
-			<Page_Read_Latency_CSB>45000</Page_Read_Latency_CSB>
+			<Page_Read_Latency_CSB>0</Page_Read_Latency_CSB>
 			<Page_Read_Latency_MSB>45000</Page_Read_Latency_MSB>
-			<Page_Program_Latency_LSB>450000</Page_Program_Latency_LSB>
-			<Page_Program_Latency_CSB>450000</Page_Program_Latency_CSB>
+			<Page_Program_Latency_LSB>350000</Page_Program_Latency_LSB>
+			<Page_Program_Latency_CSB>0</Page_Program_Latency_CSB>
 			<Page_Program_Latency_MSB>450000</Page_Program_Latency_MSB>
 			<Block_Erase_Latency>3500000</Block_Erase_Latency>
 			<Block_PE_Cycles_Limit>10000</Block_PE_Cycles_Limit>

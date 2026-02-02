@@ -128,7 +128,7 @@ class AddressMappingDomain {
   unsigned int Plane_no;
 
   LHA_type max_logical_sector_address;
-  LPA_type Total_logical_pages_no; // without operprovisioned pages
+  LPA_type Total_logical_pages_no;  // without operprovisioned pages
   PPA_type Total_physical_pages_no;
   MVPN_type Total_translation_pages_no;
 };
@@ -188,6 +188,8 @@ class Address_Mapping_Unit_Page_Level : public Address_Mapping_Unit_Base {
   // In CMT MQSim stores (lpn, ppn, page status bits) but
   // in GTD it only stores (ppn, page status bits)
   unsigned int CMT_entry_size, GTD_entry_size;
+  void setup_plane_address(stream_id_type stream_id, LPA_type lpa,
+                                                            NVM::FlashMemory::Physical_Page_Address& targetAddress);
   void allocate_plane_for_user_write(NVM_Transaction_Flash_WR* transaction);
   void allocate_page_in_plane_for_user_write(NVM_Transaction_Flash_WR* transaction, bool is_for_gc);
   void allocate_plane_for_translation_write(NVM_Transaction_Flash* transaction);
