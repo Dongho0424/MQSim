@@ -128,7 +128,7 @@ class AddressMappingDomain {
   unsigned int Plane_no;
 
   LHA_type max_logical_sector_address;
-  LPA_type Total_logical_pages_no;
+  LPA_type Total_logical_pages_no; // without operprovisioned pages
   PPA_type Total_physical_pages_no;
   MVPN_type Total_translation_pages_no;
 };

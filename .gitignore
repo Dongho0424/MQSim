@@ -1,6 +1,6 @@
 MQSim
 build/
-
+traces/
 .DS_Store
 .vscode/
 

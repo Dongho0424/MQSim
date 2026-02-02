@@ -119,9 +119,8 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
       Utils::RandomGenerator* random_request_size_generator = NULL;
       bool fully_include_hot_addresses = false;
 
-      if (stat->Address_distribution_type ==
-          Utils::Address_Distribution_Type::RANDOM_HOTCOLD)  // treat a workload with very low hot/cold values
-                                                             // as a uniform random workload
+      // treat a workload with very low hot/cold values as a uniform random workload
+      if (stat->Address_distribution_type == Utils::Address_Distribution_Type::RANDOM_HOTCOLD)
         if (stat->Ratio_of_hot_addresses_to_whole_working_set > 0.3)
           decision_dist_type = Utils::Address_Distribution_Type::RANDOM_UNIFORM;
 
@@ -243,16 +242,8 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
                 is_hot_address = false;
               }
             } else {
-              if (random_hot_cold_generator->Uniform(0, 1) <
-                  stat->Ratio_of_hot_addresses_to_whole_working_set)  // (100-hot)%
-                                                                      // of
-                                                                      // requests
-                                                                      // going
-                                                                      // to hot%
-                                                                      // of the
-                                                                      // address
-                                                                      // space
-              {
+              // (100-hot)% of requests going to hot% of the address space
+              if (random_hot_cold_generator->Uniform(0, 1) < stat->Ratio_of_hot_addresses_to_whole_working_set) {
                 start_LBA = random_hot_address_generator->Uniform_ulong(hot_region_end_lsa + 1, max_lha);
                 if (start_LBA < hot_region_end_lsa + 1 || start_LBA > max_lha)
                   PRINT_ERROR(
@@ -313,7 +304,9 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
           }
         }
       }
-    } else {
+    }
+    // Trace-based Workload
+    else {
       // Step 1-1: Read LPAs are preferred for steady-state since each read
       // should be written before the actual access
       for (auto itr = stat->Write_read_shared_addresses.begin(); itr != stat->Write_read_shared_addresses.end();
@@ -354,9 +347,8 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
       }
 
       // Step 1-3: Determine the address distribution type of the input trace
-      stat->Address_distribution_type =
-          Utils::Address_Distribution_Type::RANDOM_HOTCOLD;  // Initially assume that the trace has hot/cold
-                                                             // access pattern
+      // Initially assume that the trace has hot/cold access pattern
+      stat->Address_distribution_type = Utils::Address_Distribution_Type::RANDOM_HOTCOLD;
 
       // First check if there are enough number of write requests in the
       // workload to make a statistically correct decision, if not, MQSim
@@ -399,6 +391,10 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
         stat->Address_distribution_type = Utils::Address_Distribution_Type::RANDOM_UNIFORM;
       }
 
+      // Update local decision_dist_type for trace-based workloads where
+      // stat->Address_distribution_type is determined above
+      decision_dist_type = stat->Address_distribution_type;
+
       Utils::RandomGenerator* random_address_generator = new Utils::RandomGenerator(preconditioning_seed++);
       unsigned int size = stat->Average_request_size_sector;
       LHA_type start_LHA = 0;
@@ -440,15 +436,15 @@ void FTL::Perform_precondition(std::vector<Utils::Workload_Statistics*> workload
     // blocks, in the steady-state. Note: if hot/cold separation is required,
     // then the following estimations should be changed according to Van Houtd's
     // paper in Performance Evaluation 2014.
-    std::vector<double> steadystate_block_status_probability;  // The probability distribution
-                                                               // function of the number of
-                                                               // valid pages in a block in the
-                                                               // steadystate
+
+    // The probability distribution function of the number of valid pages in a block in the steadystate
+    std::vector<double> steadystate_block_status_probability;  
     double rho = stat->Initial_occupancy_ratio * (1 - over_provisioning_ratio) /
                  (1 - double(GC_and_WL_Unit->Get_minimum_number_of_free_pages_before_GC()) / block_no_per_plane);
+
     switch (decision_dist_type) {
-      case Utils::Address_Distribution_Type::RANDOM_HOTCOLD:  // Estimate the steady-state of the hot/cold traffic
-                                                              // based on the steady-state of the uniform traffic
+      // Estimate the steady-state of the hot/cold traffic based on the steady-state of the uniform traffic
+      case Utils::Address_Distribution_Type::RANDOM_HOTCOLD:  
       {
         double r_to_f_ratio = std::sqrt(double(stat->Ratio_of_traffic_accessing_hot_region) /
                                         double(stat->Ratio_of_hot_addresses_to_whole_working_set));

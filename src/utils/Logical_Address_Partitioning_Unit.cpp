@@ -41,6 +41,7 @@ void Logical_Address_Partitioning_Unit::Reset() {
   delete[] resource_list;
 }
 
+// concurrent_stream_no = num of io_flows
 void Logical_Address_Partitioning_Unit::Allocate_logical_address_for_flows(
     HostInterface_Types hostinterface_type, unsigned int concurrent_stream_no, unsigned int channel_count,
     unsigned int chip_no_per_channel, unsigned int die_no_per_chip, unsigned int plane_no_per_die,
@@ -76,6 +77,7 @@ void Logical_Address_Partitioning_Unit::Allocate_logical_address_for_flows(
     }
   }
 
+  // io_flow를 미리 뜯어서, 각각 어떤 plane을 접근하는지 counting
   for (unsigned int stream_id = 0; stream_id < concurrent_stream_no; stream_id++) {
     for (flash_channel_ID_type channel_id = 0; channel_id < stream_channel_ids[stream_id].size(); channel_id++) {
       for (flash_chip_ID_type chip_id = 0; chip_id < stream_chip_ids[stream_id].size(); chip_id++) {
@@ -138,6 +140,7 @@ void Logical_Address_Partitioning_Unit::Allocate_logical_address_for_flows(
       for (flash_chip_ID_type chip_id = 0; chip_id < stream_chip_ids[stream_id].size(); chip_id++) {
         for (flash_die_ID_type die_id = 0; die_id < stream_die_ids[stream_id].size(); die_id++) {
           for (flash_plane_ID_type plane_id = 0; plane_id < stream_plane_ids[stream_id].size(); plane_id++) {
+            // LHA count per io_flow. overprovisioning_ratio 곱한 만큼, host에게는 적게 보여야 함.
             lsa_count += (LHA_type)((
                 block_no_per_plane * page_no_per_block * sector_no_per_page * (1.0 - overprovisioning_ratio) * 1.0 /
                 double(resource_list[stream_channel_ids[stream_id][channel_id]][stream_chip_ids[stream_id][chip_id]]
@@ -151,6 +154,10 @@ void Logical_Address_Partitioning_Unit::Allocate_logical_address_for_flows(
     lsa_count_per_stream.push_back(lsa_count);
   }
 
+  // io_flow 마다 LBA를 아예 겹치지 않게 나눠 가진다.
+  // io_flow 0: 0 ~ max0
+  // io_flow 1: max0 ~ max1
+  // ...
   total_lha_no = 0;
   for (unsigned int stream_id = 0; stream_id < concurrent_stream_no; stream_id++) {
     start_lhas_per_flow.push_back(total_lha_no);
