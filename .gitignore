@@ -1,5 +1,7 @@
 MQSim
+MQSim_debug
 build/
+debug_build/
 traces/
 .DS_Store
 .vscode/

@@ -870,6 +870,7 @@ void Address_Mapping_Unit_Page_Level::Allocate_new_page_for_gc(NVM_Transaction_F
   }
 }
 
+// static allocation for LPA -> PPA
 void Address_Mapping_Unit_Page_Level::setup_plane_address(stream_id_type stream_id, LPA_type lpn,
                                                           NVM::FlashMemory::Physical_Page_Address& targetAddress) {
   AddressMappingDomain* domain = domains[stream_id];

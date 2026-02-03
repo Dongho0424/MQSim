@@ -76,21 +76,25 @@ void TSU_Base::Report_results_in_XML(std::string name_prefix, Utils::XmlWriter& 
 
 bool TSU_Base::issue_command_to_chip(Flash_Transaction_Queue* sourceQueue1, Flash_Transaction_Queue* sourceQueue2,
                                      Transaction_Type transactionType, bool suspensionRequired) {
-  flash_die_ID_type dieID = sourceQueue1->front()->Address.DieID;
-  flash_page_ID_type pageID = sourceQueue1->front()->Address.PageID;
-  unsigned int planeVector = 0;
+  // 첫번째 plane에 대한 cmd를 기준으로
+  flash_die_ID_type startDieID = sourceQueue1->front()->Address.DieID;
+  flash_page_ID_type targetPageID = sourceQueue1->front()->Address.PageID;
+  unsigned int planeBitmap = 0;
   static int issueCntr = 0;
 
+  // die 단위로 loop
   for (unsigned int i = 0; i < die_no_per_chip; i++) {
     transaction_dispatch_slots.clear();
-    planeVector = 0;
+    planeBitmap = 0;
 
     for (Flash_Transaction_Queue::iterator it = sourceQueue1->begin(); it != sourceQueue1->end();) {
-      if (transaction_is_ready(*it) && (*it)->Address.DieID == dieID && !(planeVector & 1 << (*it)->Address.PlaneID)) {
+      // !(planeBitmap & 1 << (*it)->Address.PlaneID): 해당 plane 사용 중이 아님.
+      if (transaction_is_ready(*it) && (*it)->Address.DieID == startDieID && !(planeBitmap & 1 << (*it)->Address.PlaneID)) {
         // Check for identical pages when running multiplane command
-        if (planeVector == 0 || (*it)->Address.PageID == pageID) {
+        // 같은 die, 다른 plane이지만 page가 같다면 transaction 시도. 
+        if (planeBitmap == 0 || (*it)->Address.PageID == targetPageID) {
           (*it)->SuspendRequired = suspensionRequired;
-          planeVector |= 1 << (*it)->Address.PlaneID;
+          planeBitmap |= 1 << (*it)->Address.PlaneID;
           transaction_dispatch_slots.push_back(*it);
           DEBUG(issueCntr++ << ": " << Simulator->Time() << " Issueing Transaction - Type:" << TRTOSTR((*it))
                             << ", PPA:" << (*it)->PPA << ", LPA:" << (*it)->LPA
@@ -104,12 +108,12 @@ bool TSU_Base::issue_command_to_chip(Flash_Transaction_Queue* sourceQueue1, Flas
 
     if (sourceQueue2 != NULL && transaction_dispatch_slots.size() < plane_no_per_die) {
       for (Flash_Transaction_Queue::iterator it = sourceQueue2->begin(); it != sourceQueue2->end();) {
-        if (transaction_is_ready(*it) && (*it)->Address.DieID == dieID &&
-            !(planeVector & 1 << (*it)->Address.PlaneID)) {
+        if (transaction_is_ready(*it) && (*it)->Address.DieID == startDieID &&
+            !(planeBitmap & 1 << (*it)->Address.PlaneID)) {
           // Check for identical pages when running multiplane command
-          if (planeVector == 0 || (*it)->Address.PageID == pageID) {
+          if (planeBitmap == 0 || (*it)->Address.PageID == targetPageID) {
             (*it)->SuspendRequired = suspensionRequired;
-            planeVector |= 1 << (*it)->Address.PlaneID;
+            planeBitmap |= 1 << (*it)->Address.PlaneID;
             transaction_dispatch_slots.push_back(*it);
             DEBUG(issueCntr++ << ": " << Simulator->Time() << " Issueing Transaction - Type:" << TRTOSTR((*it))
                               << ", PPA:" << (*it)->PPA << ", LPA:" << (*it)->LPA
@@ -125,12 +129,10 @@ bool TSU_Base::issue_command_to_chip(Flash_Transaction_Queue* sourceQueue1, Flas
     if (transaction_dispatch_slots.size() > 0) {
       _NVMController->Send_command_to_chip(transaction_dispatch_slots);
       transaction_dispatch_slots.clear();
-      dieID = (dieID + 1) % die_no_per_chip;
       return true;
     } else {
       transaction_dispatch_slots.clear();
-      dieID = (dieID + 1) % die_no_per_chip;
-      return false;
+      startDieID = (startDieID + 1) % die_no_per_chip;
     }
   }
 
