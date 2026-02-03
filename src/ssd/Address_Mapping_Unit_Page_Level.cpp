@@ -466,8 +466,7 @@ void Address_Mapping_Unit_Page_Level::Translate_lpa_to_ppa_and_dispatch(
     const std::list<NVM_Transaction*>& transactionList) {
   for (std::list<NVM_Transaction*>::const_iterator it = transactionList.begin(); it != transactionList.end();) {
     if (is_lpa_locked_for_gc((*it)->Stream_id, ((NVM_Transaction_Flash*)(*it))->LPA)) {
-      // iterator should be post-incremented since the iterator may be deleted
-      // from list
+      // iterator should be post-incremented since the iterator may be deleted from list
       manage_user_transaction_facing_barrier((NVM_Transaction_Flash*)*(it++));
     } else {
       query_cmt((NVM_Transaction_Flash*)(*it++));
@@ -479,6 +478,7 @@ void Address_Mapping_Unit_Page_Level::Translate_lpa_to_ppa_and_dispatch(
     for (std::list<NVM_Transaction*>::const_iterator it = transactionList.begin(); it != transactionList.end(); it++) {
       if (((NVM_Transaction_Flash*)(*it))->Physical_address_determined) {
         ftl->TSU->Submit_transaction(static_cast<NVM_Transaction_Flash*>(*it));
+
         if (((NVM_Transaction_Flash*)(*it))->Type == Transaction_Type::WRITE) {
           if (((NVM_Transaction_Flash_WR*)(*it))->RelatedRead != NULL) {
             ftl->TSU->Submit_transaction(((NVM_Transaction_Flash_WR*)(*it))->RelatedRead);
@@ -493,77 +493,80 @@ void Address_Mapping_Unit_Page_Level::Translate_lpa_to_ppa_and_dispatch(
 
 bool Address_Mapping_Unit_Page_Level::query_cmt(NVM_Transaction_Flash* transaction) {
   stream_id_type stream_id = transaction->Stream_id;
-  Stats::total_CMT_queries++;
-  Stats::total_CMT_queries_per_stream[stream_id]++;
+  LPA_type lpa = transaction->LPA;
+  bool is_read = (transaction->Type == Transaction_Type::READ);
 
-  if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, transaction->LPA)) {
-    // Either limited or unlimited CMT
-    Stats::CMT_hits_per_stream[stream_id]++;
-    Stats::CMT_hits++;
-    if (transaction->Type == Transaction_Type::READ) {
-      Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
+  auto update_cmt_stats = [&](bool is_hit) {
+    // 공통 쿼리 통계
+    Stats::total_CMT_queries++;
+    Stats::total_CMT_queries_per_stream[stream_id]++;
+
+    if (is_read) {
       Stats::total_readTR_CMT_queries++;
-      Stats::readTR_CMT_hits_per_stream[stream_id]++;
-      Stats::readTR_CMT_hits++;
+      Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
     } else {
-      // This is a write transaction
       Stats::total_writeTR_CMT_queries++;
       Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-      Stats::writeTR_CMT_hits++;
-      Stats::writeTR_CMT_hits_per_stream[stream_id]++;
     }
 
-    if (translate_lpa_to_ppa(stream_id, transaction)) {
-      return true;
+    // Hit / Miss 결과 통계
+    if (is_hit) {
+      Stats::CMT_hits++;
+      Stats::CMT_hits_per_stream[stream_id]++;
+      if (is_read) {
+        Stats::readTR_CMT_hits++;
+        Stats::readTR_CMT_hits_per_stream[stream_id]++;
+      } else {
+        Stats::writeTR_CMT_hits++;
+        Stats::writeTR_CMT_hits_per_stream[stream_id]++;
+      }
     } else {
-      mange_unsuccessful_translation(transaction);
-      return false;
-    }
-  } else {  // Limited CMT
-    // Maybe we can catch mapping data from an on-the-fly write back request
-    if (request_mapping_entry(stream_id, transaction->LPA)) {
       Stats::CMT_miss++;
       Stats::CMT_miss_per_stream[stream_id]++;
-      if (transaction->Type == Transaction_Type::READ) {
-        Stats::total_readTR_CMT_queries++;
-        Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
+      if (is_read) {
         Stats::readTR_CMT_miss++;
         Stats::readTR_CMT_miss_per_stream[stream_id]++;
-      } else {  // This is a write transaction
-        Stats::total_writeTR_CMT_queries++;
-        Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
-        Stats::writeTR_CMT_miss++;
-        Stats::writeTR_CMT_miss_per_stream[stream_id]++;
-      }
-      if (translate_lpa_to_ppa(stream_id, transaction)) {
-        return true;
       } else {
-        mange_unsuccessful_translation(transaction);
-        return false;
-      }
-    } else {
-      if (transaction->Type == Transaction_Type::READ) {
-        Stats::total_readTR_CMT_queries++;
-        Stats::total_readTR_CMT_queries_per_stream[stream_id]++;
-        Stats::readTR_CMT_miss++;
-        Stats::readTR_CMT_miss_per_stream[stream_id]++;
-        domains[stream_id]->Waiting_unmapped_read_transactions.insert(
-            std::pair<LPA_type, NVM_Transaction_Flash*>(transaction->LPA, transaction));
-      } else {  // This is a write transaction
-        Stats::total_writeTR_CMT_queries++;
-        Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
         Stats::writeTR_CMT_miss++;
         Stats::writeTR_CMT_miss_per_stream[stream_id]++;
-        domains[stream_id]->Waiting_unmapped_program_transactions.insert(
-            std::pair<LPA_type, NVM_Transaction_Flash*>(transaction->LPA, transaction));
       }
     }
+  };
 
+  // 1. CMT Hit 케이스 (Mapping entry가 접근 가능한 경우)
+  if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, lpa)) {
+    update_cmt_stats(true);
+    if (translate_lpa_to_ppa(stream_id, transaction)) {
+      return true;
+    }
+    mange_unsuccessful_translation(transaction);  // 원본의 typo(mange) 유지
     return false;
   }
+
+  // 2. CMT Miss 케이스
+  update_cmt_stats(false);
+
+  // 2-1. On-the-fly write back에서 데이터를 가져올 수 있는지 확인
+  if (request_mapping_entry(stream_id, lpa)) {
+    if (translate_lpa_to_ppa(stream_id, transaction)) {
+      return true;
+    }
+    mange_unsuccessful_translation(transaction);
+    return false;
+  }
+
+  // 2-2. 완전히 Miss되어 큐에 대기해야 하는 경우
+  if (is_read) {
+    domains[stream_id]->Waiting_unmapped_read_transactions.insert({lpa, transaction});
+  } else {
+    domains[stream_id]->Waiting_unmapped_program_transactions.insert({lpa, transaction});
+  }
+
+  return false;
 }
 
-/*This function should be invoked only if the address translation entry exists
+/**
+ * This function should be invoked only if the address translation entry exists
  * in CMT. Otherwise, the call to the CMT->Rerieve_ppa, within this function,
  * will throw an exception.
  */
@@ -581,18 +584,26 @@ bool Address_Mapping_Unit_Page_Level::translate_lpa_to_ppa(stream_id_type stream
     block_manager->Read_transaction_issued(transaction->Address);
     transaction->Physical_address_determined = true;
 
-    return true;
   } else {  // This is a write transaction
+
+    // 1. plane address
     allocate_plane_for_user_write((NVM_Transaction_Flash_WR*)transaction);
     // there are too few free pages remaining only for GC
     if (ftl->GC_and_WL_Unit->Stop_servicing_writes(transaction->Address)) {
       return false;
     }
+
+    // 2. block/page address via block_manager
     allocate_page_in_plane_for_user_write((NVM_Transaction_Flash_WR*)transaction, false);
     transaction->Physical_address_determined = true;
-
-    return true;
   }
+
+  // std::cout << "[MAP_LOG]," << transaction->LPA << "," << transaction->Address.ChannelID << ","
+  //           << transaction->Address.ChipID << "," << transaction->Address.DieID << "," <<
+  //           transaction->Address.PlaneID
+  //           << "," << transaction->Address.BlockID << "," << transaction->Address.PageID << std::endl;
+
+  return true;
 }
 
 void Address_Mapping_Unit_Page_Level::Allocate_address_for_preconditioning(
@@ -1154,6 +1165,7 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
       page_status_type status_intersection = transaction->write_sectors_bitmap & prev_page_status;
       // check if an update read is required
       if (status_intersection == prev_page_status) {
+        // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
         NVM::FlashMemory::Physical_Page_Address addr;
         Convert_ppa_to_address(old_ppa, addr);
         block_manager->Invalidate_page_in_block(transaction->Stream_id, addr);
@@ -1165,8 +1177,8 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
             transaction->UserIORequest, transaction->Content, transaction, read_pages_bitmap,
             domain->GlobalMappingTable[transaction->LPA].TimeStamp);
         Convert_ppa_to_address(old_ppa, update_read_tr->Address);
-        // Inform block manager about a new
-        // transaction as soon as the transaction's target address is determined
+        // Inform block manager about a new transaction
+        // as soon as the transaction's target address is determined
         block_manager->Read_transaction_issued(update_read_tr->Address);
         block_manager->Invalidate_page_in_block(transaction->Stream_id, update_read_tr->Address);
         transaction->RelatedRead = update_read_tr;
@@ -1174,11 +1186,12 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
     }
   }
 
-  /*The following lines should not be ordered with respect to the
+  /**
+   * The following lines should not be ordered with respect to the
    * block_manager->Invalidate_page_in_block function call in the above code
    * blocks. Otherwise, GC may be invoked (due to the call to
-   * Allocate_block_....) and may decide to move a page that is just
-   * invalidated.*/
+   * Allocate_block_....) and may decide to move a page that is just invalidated.
+   */
   if (is_for_gc) {
     block_manager->Allocate_block_and_page_in_plane_for_gc_write(transaction->Stream_id, transaction->Address);
   } else {
@@ -1225,8 +1238,13 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_translation_wri
 PPA_type Address_Mapping_Unit_Page_Level::online_create_entry_for_reads(
     LPA_type lpa, const stream_id_type stream_id, NVM::FlashMemory::Physical_Page_Address& read_address,
     uint64_t read_sectors_bitmap) {
+  // get plane address
   setup_plane_address(stream_id, lpa, read_address);
+
+  // block, page allocation
   block_manager->Allocate_block_and_page_in_plane_for_user_write(stream_id, read_address);
+
+  // update CMT
   PPA_type ppa = Convert_address_to_ppa(read_address);
   domains[stream_id]->Update_mapping_info(ideal_mapping_table, stream_id, lpa, ppa, read_sectors_bitmap);
 
@@ -1340,7 +1358,7 @@ bool Address_Mapping_Unit_Page_Level::request_mapping_entry(const stream_id_type
     return true;
   }
 
-  /*A read transaction is already under process to retrieve the MVP content.
+  /* A read transaction is already under process to retrieve the MVP content.
    * This situation may happen in two different cases:
    * 1. A read has been issued to retrieve unchanged parts of the mapping data
    * and merge them with the changed parts (i.e., an update read of MVP). This
@@ -1374,7 +1392,7 @@ bool Address_Mapping_Unit_Page_Level::request_mapping_entry(const stream_id_type
     }
   }
 
-  /*MQSim assumes that the data of all departing (evicted from CMT) translation
+  /* MQSim assumes that the data of all departing (evicted from CMT) translation
   pages are in memory, until the flash program operation finishes and the entry
   it is cleared from DepartingMappingEntries.*/
   if (domain->DepartingMappingEntries.find(mvpn) != domain->DepartingMappingEntries.end()) {

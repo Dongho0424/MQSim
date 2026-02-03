@@ -246,8 +246,7 @@ void Data_Cache_Manager_Flash_Advanced::process_new_user_request(User_Request* u
         static_cast<FTL*>(nvm_firmware)
             ->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(user_request->Transaction_list);
         return;
-      case Caching_Mode::WRITE_CACHE:  // The data cache manger unit performs
-                                       // like a destage buffer
+      case Caching_Mode::WRITE_CACHE:  // The data cache manger unit performs like a destage buffer
       case Caching_Mode::WRITE_READ_CACHE: {
         write_to_destage_buffer(user_request);
 
@@ -267,11 +266,13 @@ void Data_Cache_Manager_Flash_Advanced::process_new_user_request(User_Request* u
 void Data_Cache_Manager_Flash_Advanced::write_to_destage_buffer(User_Request* user_request) {
   // To eliminate race condition, MQSim assumes the management information and
   // user data are stored in separate DRAM modules
-  unsigned int cache_eviction_read_size_in_sectors = 0;       // The size of data evicted from cache
-  unsigned int flash_written_back_write_size_in_sectors = 0;  // The size of data that is both written back to flash and
-                                                              // written to DRAM
-  unsigned int dram_write_size_in_sectors = 0;                // The size of data written to DRAM (must be >=
-                                                              // flash_written_back_write_size_in_sectors)
+  // The size of data evicted from cache
+  unsigned int cache_eviction_read_size_in_sectors = 0;       
+  // The size of data that is both written back to flash and written to DRAM
+  unsigned int flash_written_back_write_size_in_sectors = 0;  
+  // The size of data written to DRAM (must be >= flash_written_back_write_size_in_sectors)
+  unsigned int dram_write_size_in_sectors = 0;    
+              
   std::list<NVM_Transaction*>* evicted_cache_slots = new std::list<NVM_Transaction*>;
   std::list<NVM_Transaction*> writeback_transactions;
   auto it = user_request->Transaction_list.begin();

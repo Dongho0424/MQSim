@@ -16,26 +16,30 @@
 namespace SSD_Components {
 #define All_VALID_PAGE 0x0000000000000000ULL
 class GC_and_WL_Unit_Base;
-/*
+/**
  * Block_Service_Status is used to impelement a state machine for each physical
  * block in order to eliminate race conditions between GC page movements and
- * normal user I/O requests. Allowed transitions: 1: IDLE -> GC, IDLE -> USER 2:
- * GC -> IDLE, GC -> GC_UWAIT 3: USER -> IDLE, USER -> GC_USER 4: GC_UWAIT ->
- * GC, GC_UWAIT -> GC_UWAIT 5: GC_USER -> GC
+ * normal user I/O requests.
+ * Allowed transitions:
+ *   1: IDLE -> GC, IDLE -> USER
+ *   2: GC -> IDLE, GC -> GC_UWAIT
+ *   3: USER -> IDLE, USER -> GC_USER
+ *   4: GC_UWAIT -> GC, GC_UWAIT -> GC_UWAIT
+ *   5: GC_USER -> GC
  */
 enum class Block_Service_Status { IDLE, GC_WL, USER, GC_USER, GC_UWAIT, GC_USER_UWAIT };
 
 class Block_Pool_Slot_Type {
  public:
-  flash_block_ID_type BlockID;
-  flash_page_ID_type Current_page_write_index;
+  flash_block_ID_type BlockID;                  // 현재 block의 id
+  flash_page_ID_type Current_page_write_index;  // 현재 block의 page의 index
   Block_Service_Status Current_status;
   unsigned int Invalid_page_count;
   unsigned int Erase_count;
-  static unsigned int Page_vector_size;
-  uint64_t* Invalid_page_bitmap;  // A bit sequence that keeps track of
-                                  // valid/invalid status of pages in the block.
-                                  // A "0" means valid, and a "1" means invalid.
+  static unsigned int bitmap_size;  // Invalid_page_bitmap의 크기. (64bit이 몇개?)
+  // A bitmap that keeps track of valid/invalid status of pages in the block.
+  // A "0" means valid, and a "1" means invalid.
+  uint64_t* Invalid_page_bitmap; // bitmap_size 개수만큼 갖고 있다.
   stream_id_type Stream_id = NO_STREAM;
   bool Holds_mapping_data = false;
   bool Has_ongoing_gc_wl = false;
@@ -56,11 +60,10 @@ class PlaneBookKeepingType {
   unsigned int Invalid_pages_count;
   Block_Pool_Slot_Type* Blocks;
   std::multimap<unsigned int, Block_Pool_Slot_Type*> Free_block_pool;
-  // The write frontier blocks for data and GC pages. MQSim adopts
-  // Double Write Frontier approach for user and GC writes which
-  // is shown very advantages in: B. Van Houdt, "On the necessity
-  // of hot and cold data identification to reduce the write
-  // amplification in flash - based SSDs", Perf. Eval., 2014
+  // The write frontier blocks for data and GC pages. MQSim adopts Double Write Frontier approach for user and GC writes
+  // which is shown very advantages in: B. Van Houdt, "On the necessity of hot and cold data identification to reduce
+  // the write amplification in flash - based SSDs", Perf. Eval., 2014
+  // write frontier block: 해당 plane이 어디까지 data를 채웠는지 관련. 다음 page의 index를 할당할 때 사용.
   Block_Pool_Slot_Type **Data_wf, **GC_wf;
   Block_Pool_Slot_Type** Translation_wf;                // The write frontier blocks for translation GC pages
   std::queue<flash_block_ID_type> Block_usage_history;  // A fifo queue that keeps track of flash blocks
@@ -132,7 +135,7 @@ class Flash_Block_Manager_Base {
   PlaneBookKeepingType**** plane_manager;  // Keeps track of plane block usage information
   GC_and_WL_Unit_Base* gc_and_wl_unit;
   unsigned int max_allowed_block_erase_count;
-  unsigned int total_concurrent_streams_no;
+  unsigned int stream_count;
   unsigned int channel_count;
   unsigned int chip_no_per_channel;
   unsigned int die_no_per_chip;
