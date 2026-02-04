@@ -352,7 +352,26 @@ int main(int argc, char* argv[]) {
     struct tm* timeinfo = localtime(&now);
     char timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%y%m%d_%H%M%S", timeinfo);
-    string output_path = output_dir + timestamp + "_scen_" + std::to_string(cntr) + ".xml";
+    string trace_name = "";
+    for (auto io_flow_def : *(*io_scen)) {
+      if (io_flow_def->Type == Flow_Type::TRACE) {
+        string full_path = ((IO_Flow_Parameter_Set_Trace_Based*)io_flow_def)->File_Path;
+
+        // 경로에서 파일명만 추출 (마지막 '/' 이후)
+        size_t last_slash = full_path.find_last_of("/\\");
+        string file_name = (last_slash == string::npos) ? full_path : full_path.substr(last_slash + 1);
+
+        // 확장자 제거 (마지막 '.' 이전)
+        size_t last_dot = file_name.find_last_of(".");
+        if (last_dot != string::npos) {
+          file_name = file_name.substr(0, last_dot);
+        }
+
+        trace_name = "_" + file_name;  // 파일명 앞에 구분자 추가
+        break;                         // 첫 번째 trace 파일명을 기준으로 함
+      }
+    }
+    string output_path = output_dir + timestamp + trace_name + ".xml";
     collect_results(ssd, host, output_path);
   }
 
