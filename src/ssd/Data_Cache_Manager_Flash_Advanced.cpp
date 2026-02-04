@@ -267,12 +267,12 @@ void Data_Cache_Manager_Flash_Advanced::write_to_destage_buffer(User_Request* us
   // To eliminate race condition, MQSim assumes the management information and
   // user data are stored in separate DRAM modules
   // The size of data evicted from cache
-  unsigned int cache_eviction_read_size_in_sectors = 0;       
+  unsigned int cache_eviction_read_size_in_sectors = 0;
   // The size of data that is both written back to flash and written to DRAM
-  unsigned int flash_written_back_write_size_in_sectors = 0;  
+  unsigned int flash_written_back_write_size_in_sectors = 0;
   // The size of data written to DRAM (must be >= flash_written_back_write_size_in_sectors)
-  unsigned int dram_write_size_in_sectors = 0;    
-              
+  unsigned int dram_write_size_in_sectors = 0;
+
   std::list<NVM_Transaction*>* evicted_cache_slots = new std::list<NVM_Transaction*>;
   std::list<NVM_Transaction*> writeback_transactions;
   auto it = user_request->Transaction_list.begin();

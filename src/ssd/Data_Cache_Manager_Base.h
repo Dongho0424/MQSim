@@ -75,25 +75,56 @@ class Data_Cache_Manager_Base : public MQSimEngine::Sim_Object {
   }
 };
 
+// inline sim_time_type estimate_dram_access_time(const unsigned int memory_access_size_in_byte,
+//                                                const unsigned int dram_row_size,
+//                                                const unsigned int dram_burst_size_in_bytes,
+//                                                const double dram_burst_transfer_time_ddr, const sim_time_type tRCD,
+//                                                const sim_time_type tCL, const sim_time_type tRP) {
+//   if (memory_access_size_in_byte <= dram_row_size) {
+//     return (sim_time_type)(tRCD + tCL +
+//                            sim_time_type((double)(memory_access_size_in_byte / dram_burst_size_in_bytes / 2) *
+//                                          dram_burst_transfer_time_ddr));
+//   } else {
+//     return (sim_time_type)(
+//       (tRCD + tCL + (sim_time_type)((double)(dram_row_size / dram_burst_size_in_bytes / 2 *
+//       dram_burst_transfer_time_ddr) + tRP) * (double)(memory_access_size_in_byte / dram_row_size / 2))
+//       +
+//       tRCD + tCL + (sim_time_type)((double)(memory_access_size_in_byte % dram_row_size) /
+//       ((double)dram_burst_size_in_bytes * dram_burst_transfer_time_ddr)));
+//   }
+// }
+
 inline sim_time_type estimate_dram_access_time(const unsigned int memory_access_size_in_byte,
                                                const unsigned int dram_row_size,
                                                const unsigned int dram_burst_size_in_bytes,
                                                const double dram_burst_transfer_time_ddr, const sim_time_type tRCD,
                                                const sim_time_type tCL, const sim_time_type tRP) {
+  // 1. 공통적으로 사용되는 단위 시간 계산 (DDR을 고려한 버스트 전송 시간)
+  // 기존 코드의 'size / burst_size / 2 * transfer_time' 로직을 반영
+  auto calculate_burst_delay = [&](unsigned int size_in_bytes) -> sim_time_type {
+    double num_bursts = static_cast<double>(size_in_bytes) / dram_burst_size_in_bytes;
+    return static_cast<sim_time_type>(num_bursts / 2.0 * dram_burst_transfer_time_ddr);
+  };
+
+  const sim_time_type activation_time = tRCD + tCL;
+
+  // Case 1: 단일 Row 내에서 액세스가 끝나는 경우
   if (memory_access_size_in_byte <= dram_row_size) {
-    return (sim_time_type)(tRCD + tCL +
-                           sim_time_type((double)(memory_access_size_in_byte / dram_burst_size_in_bytes / 2) *
-                                         dram_burst_transfer_time_ddr));
-  } else {
-    return (sim_time_type)((tRCD + tCL +
-                            (sim_time_type)((double)(dram_row_size / dram_burst_size_in_bytes / 2 *
-                                                     dram_burst_transfer_time_ddr) +
-                                            tRP) *
-                                (double)(memory_access_size_in_byte / dram_row_size / 2)) +
-                           tRCD + tCL +
-                           (sim_time_type)((double)(memory_access_size_in_byte % dram_row_size) /
-                                           ((double)dram_burst_size_in_bytes * dram_burst_transfer_time_ddr)));
+    return activation_time + calculate_burst_delay(memory_access_size_in_byte);
   }
+
+  // Case 2: 여러 Row에 걸쳐 액세스가 발생하는 경우
+  const unsigned int full_rows = memory_access_size_in_byte / dram_row_size;
+  const unsigned int remaining_bytes = memory_access_size_in_byte % dram_row_size;
+
+  // 한 Row를 완전히 액세스하고 닫는(tRP) 데 걸리는 총 시간
+  const sim_time_type full_row_access_cycle = activation_time + calculate_burst_delay(dram_row_size) + tRP;
+
+  // 전체 시간 = (전체 Row 반복 시간) + (마지막 Row 활성화 및 남은 데이터 전송 시간)
+  sim_time_type total_delay = static_cast<sim_time_type>(full_row_access_cycle * (full_rows / 2.0));
+  total_delay += activation_time + calculate_burst_delay(remaining_bytes);
+
+  return total_delay;
 }
 }  // namespace SSD_Components
 

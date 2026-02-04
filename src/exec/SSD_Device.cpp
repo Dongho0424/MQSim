@@ -89,18 +89,16 @@ SSD_Device::SSD_Device(Device_Parameter_Set* parameters, std::vector<IO_Flow_Par
                   parameters->Flash_Parameters.Block_No_Per_Plane, parameters->Flash_Parameters.Page_No_Per_Block,
                   read_latencies, write_latencies, parameters->Flash_Parameters.Block_Erase_Latency,
                   parameters->Flash_Parameters.Suspend_Program_Time, parameters->Flash_Parameters.Suspend_Erase_Time);
-              Simulator->AddObject(chips[chip_cntr]);  // Each simulation object (a child of
-                                                       // MQSimEngine::Sim_Object) should be
-                                                       // added to the engine
+              // Each simulation object (a child of MQSimEngine::Sim_Object) should be added to the engine
+              Simulator->AddObject(chips[chip_cntr]);
             }
             channels[channel_cntr] = new SSD_Components::ONFI_Channel_NVDDR2(
                 channel_cntr, parameters->Chip_No_Per_Channel, chips, parameters->Flash_Channel_Width,
                 (sim_time_type)((double)1000 / parameters->Channel_Transfer_Rate) * 2,
                 (sim_time_type)((double)1000 / parameters->Channel_Transfer_Rate) * 2);
-            device->Channels.push_back(channels[channel_cntr]);  // Channels should not be added to the
-                                                                 // simulator core, they are passive
-                                                                 // object that do not handle any
-                                                                 // simulation event
+            // Channels should not be added to the simulator core, they are passive object that do not handle any
+            // simulation event
+            device->Channels.push_back(channels[channel_cntr]);
           }
 
           // Step 3: create channel controller and connect channels to it
@@ -345,6 +343,8 @@ SSD_Device::SSD_Device(Device_Parameter_Set* parameters, std::vector<IO_Flow_Par
                                                     parameters->Flash_Parameters.Die_No_Per_Chip *
                                                     parameters->Flash_Parameters.Plane_No_Per_Die *
                                                     parameters->Flash_Parameters.Page_Capacity / SECTOR_SIZE_IN_BYTE;
+      // 동호: plane 당 4개의 page에 대한 slot를 확보해야 plane-level parallelism를 살려 BW를 높일 수 있다.
+      back_pressure_buffer_max_depth *= 4;
 
       switch (parameters->Caching_Mechanism) {
         case SSD_Components::Caching_Mechanism::SIMPLE:

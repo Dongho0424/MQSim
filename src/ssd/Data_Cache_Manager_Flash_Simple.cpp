@@ -78,9 +78,8 @@ void Data_Cache_Manager_Flash_Simple::process_new_user_request(User_Request* use
 
             if (available_sectors_bitmap == tr->read_sectors_bitmap) {
               user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(tr->read_sectors_bitmap);
-              // the ++ operation should happen here, otherwise the
-              // iterator will be part of the list after erasing it
-              // from the list
+              // the ++ operation should happen here, otherwise the iterator will be part of the list after erasing
+              // itfrom the list
               user_request->Transaction_list.erase(it++);
             } else if (available_sectors_bitmap != 0) {
               user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(available_sectors_bitmap);
@@ -112,7 +111,6 @@ void Data_Cache_Manager_Flash_Simple::process_new_user_request(User_Request* use
       }
       default:
         PRINT_ERROR("The specified caching mode is not not support in simple cache manager!")
-
     }
   } else {  // This is a write request
     switch (caching_mode_per_input_stream[user_request->Stream_id]) {
@@ -141,9 +139,9 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
   // user data are stored in separate DRAM modules
 
   // The size of data evicted from cache
-  unsigned int cache_eviction_read_size_in_sectors = 0;       
+  unsigned int cache_eviction_read_size_in_sectors = 0;
   // The size of data that is both written back to flash and written to DRAM
-  unsigned int flash_written_back_write_size_in_sectors = 0;  
+  unsigned int flash_written_back_write_size_in_sectors = 0;
   // The size of data written to DRAM (must be >= flash_written_back_write_size_in_sectors)
   unsigned int dram_write_size_in_sectors = 0;
 
@@ -152,17 +150,14 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
   auto it = user_request->Transaction_list.begin();
 
   /**
-   * back_pressure: write cache에서 현재 처리 가능한 용량을 말함
+   * back_pressure: write cache에서 현재 처리 가능한 용량을 말함 -> 제거
    */
   while (it != user_request->Transaction_list.end() &&
          (back_pressure_buffer_depth + cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors) <
              back_pressure_buffer_max_depth) {
-    // 1. 캐시가 꽉 찼으면 Evict 수행 (evicted_cache_slots에 추가)
-    // 2. Back Pressure 카운터(buffer depth) 증가
-    // 3. user_request의 트랜잭션 리스트에서 하나씩 꺼내서 처리
 
     NVM_Transaction_Flash_WR* tr = (NVM_Transaction_Flash_WR*)(*it);
-    
+
     // If the logical address already exists in the cache
     if (data_cache->Exists(tr->Stream_id, tr->LPA)) {
       /* MQSim should get rid of writting stale data to the cache.
@@ -176,14 +171,14 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
       }
       data_cache->Update_data(tr->Stream_id, tr->LPA, content, timestamp,
                               tr->write_sectors_bitmap | slot.State_bitmap_of_existing_sectors);
-    } else {  // the logical address is not in the cache
+    } else { // data cache miss
 
-      if (!data_cache->Check_free_slot_availability()) {
-        // data cache miss이므로 현재 write transaction을 cache에 넣고, lru를 eviction 해야한다.
+      if (!data_cache->Check_free_slot_availability()) { // dram cache full
+        // data cache miss + full 이므로 현재 write transaction을 cache에 넣고, lru를 eviction 해야한다.
         Data_Cache_Slot_Type evicted_slot = data_cache->Evict_one_slot_lru();
         if (evicted_slot.Status == Cache_Slot_Status::DIRTY_NO_FLASH_WRITEBACK) {
           // evict 되는 slot이 dirty이면 writeback 해야한다.
-          // 따라서 Flash WR trasaction을 만들어 해결. 
+          // 따라서 Flash WR trasaction을 만들어 해결.
           evicted_cache_slots->push_back(new NVM_Transaction_Flash_WR(
               Transaction_Source_Type::CACHE, tr->Stream_id,
               count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors) * SECTOR_SIZE_IN_BYTE,
@@ -206,7 +201,7 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
     // cold: cache에 first lpa인 경우.
     if (bloom_filter[0].find(tr->LPA) == bloom_filter[0].end()) {
       // Cold Data로 판단되면 즉시 Flash로 내려보냄 (Eager Writeback) -> writeback_transactions에 enqueue.
-      data_cache->Change_slot_status_to_writeback(tr->Stream_id, tr->LPA); 
+      data_cache->Change_slot_status_to_writeback(tr->Stream_id, tr->LPA);
       flash_written_back_write_size_in_sectors += count_sector_no_from_status_bitmap(tr->write_sectors_bitmap);
       bloom_filter[0].insert(tr->LPA);
       writeback_transactions.push_back(tr);
@@ -222,7 +217,7 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
   // 2. 현재 write transaction의 flash write에 대한 것
   back_pressure_buffer_depth += cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors;
 
-  // 1. Issue memory read for cache evictions 
+  // 1. Issue memory read for cache evictions
   //    Evict된 transaction들만 모아서 FTL로 전송 (DRAM 시뮬레이션 후)
   if (evicted_cache_slots->size() > 0) {
     Memory_Transfer_Info* read_transfer_info = new Memory_Transfer_Info;
@@ -241,7 +236,7 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
   }
 
   // Issue memory write to write data to DRAM
-  // write cache에 새롭게 들어가는 애를 말하는 것. 
+  // write cache에 새롭게 들어가는 애를 말하는 것.
   if (dram_write_size_in_sectors) {
     Memory_Transfer_Info* write_transfer_info = new Memory_Transfer_Info;
     write_transfer_info->Size_in_bytes = dram_write_size_in_sectors * SECTOR_SIZE_IN_BYTE;
@@ -364,7 +359,7 @@ void Data_Cache_Manager_Flash_Simple::Execute_simulator_event(MQSimEngine::Sim_E
 
   switch (eventType) {
     case Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_USERIO_FINISHED:  // A user read is service from DRAM cache
-    case Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_USERIO_FINISHED:
+    case Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_USERIO_FINISHED: {
       auto* user_req = static_cast<User_Request*>(transfer_info->Related_request);
       const uint32_t sectors_count = transfer_info->Size_in_bytes / SECTOR_SIZE_IN_BYTE;
       user_req->Sectors_serviced_from_cache -= sectors_count;
@@ -372,14 +367,15 @@ void Data_Cache_Manager_Flash_Simple::Execute_simulator_event(MQSimEngine::Sim_E
         broadcast_user_request_serviced_signal(user_req);
       }
       break;
+    }
     // Reading data from DRAM and writing it back to the flash storage (as write cache eviction)
-    case Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_CACHE_EVICTION_FINISHED:
+    case Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_CACHE_EVICTION_FINISHED: {
       auto* transaction_list = static_cast<std::list<NVM_Transaction*>*>(transfer_info->Related_request);
       auto* ftl = static_cast<FTL*>(nvm_firmware);
       ftl->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(*transaction_list);
       delete transaction_list;
       break;
-
+    }
     // The recently read data from flash is written back to memory to support future user read requests
     case Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_CACHE_FINISHED:
       break;

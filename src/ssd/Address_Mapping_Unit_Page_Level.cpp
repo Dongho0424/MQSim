@@ -1163,11 +1163,10 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
       page_status_type prev_page_status =
           domain->Get_page_status(ideal_mapping_table, transaction->Stream_id, transaction->LPA);
       page_status_type status_intersection = transaction->write_sectors_bitmap & prev_page_status;
-      // check if an update read is required
-      if (status_intersection == prev_page_status) {
-        // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
+      if (status_intersection == prev_page_status) { 
         NVM::FlashMemory::Physical_Page_Address addr;
         Convert_ppa_to_address(old_ppa, addr);
+        // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
         block_manager->Invalidate_page_in_block(transaction->Stream_id, addr);
       } else {
         page_status_type read_pages_bitmap = status_intersection ^ prev_page_status;
@@ -1180,6 +1179,7 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
         // Inform block manager about a new transaction
         // as soon as the transaction's target address is determined
         block_manager->Read_transaction_issued(update_read_tr->Address);
+        // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
         block_manager->Invalidate_page_in_block(transaction->Stream_id, update_read_tr->Address);
         transaction->RelatedRead = update_read_tr;
       }
