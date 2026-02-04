@@ -353,9 +353,7 @@ void IO_Flow_Base::NVMe_consume_io_request(Completion_Queue_Entry* cqe) {
       Host_IO_Request* new_req = waiting_requests.front();
       waiting_requests.pop_front();
       if (nvme_software_request_queue[*available_command_ids.begin()] != NULL) {
-        PRINT_ERROR(
-            "Unexpteced situation in IO_Flow_Base! Overwriting a waiting I/O "
-            "request in the queue!")
+        PRINT_ERROR("Unexpteced situation in IO_Flow_Base! Overwriting a waiting I/O request in the queue!")
       } else {
         new_req->IO_queue_info = *available_command_ids.begin();
         nvme_software_request_queue[*available_command_ids.begin()] = new_req;
@@ -364,10 +362,9 @@ void IO_Flow_Base::NVMe_consume_io_request(Completion_Queue_Entry* cqe) {
         NVME_UPDATE_SQ_TAIL(nvme_queue_pair);
       }
       new_req->Enqueue_time = Simulator->Time();
+      // Based on NVMe protocol definition, the updated tail pointer should beinformed to the device
       pcie_root_complex->Write_to_device(nvme_queue_pair.Submission_tail_register_address_on_device,
-                                         nvme_queue_pair.Submission_queue_tail);  // Based on NVMe protocol definition,
-                                                                                  // the updated tail pointer should be
-                                                                                  // informed to the device
+                                         nvme_queue_pair.Submission_queue_tail);
     } else {
       break;
     }
@@ -461,11 +458,9 @@ void IO_Flow_Base::Submit_io_request(Host_IO_Request* request) {
           NVME_UPDATE_SQ_TAIL(nvme_queue_pair);
         }
         request->Enqueue_time = Simulator->Time();
-        pcie_root_complex->Write_to_device(
-            nvme_queue_pair.Submission_tail_register_address_on_device,
-            nvme_queue_pair.Submission_queue_tail);  // Based on NVMe protocol definition,
-                                                     // the updated tail pointer should be
-                                                     // informed to the device
+        // Based on NVMe protocol definition, the updated tail pointer should beinformed to the device
+        pcie_root_complex->Write_to_device(nvme_queue_pair.Submission_tail_register_address_on_device,
+                                           nvme_queue_pair.Submission_queue_tail);
       }
       break;
     case HostInterface_Types::SATA:
@@ -480,10 +475,9 @@ void IO_Flow_Base::NVMe_update_and_submit_completion_queue_tail() {
   if (nvme_queue_pair.Completion_queue_head == nvme_queue_pair.Completion_queue_size) {
     nvme_queue_pair.Completion_queue_head = 0;
   }
+  // Based on NVMe protocol definition, the updated head pointer should be informed to the device
   pcie_root_complex->Write_to_device(nvme_queue_pair.Completion_head_register_address_on_device,
-                                     nvme_queue_pair.Completion_queue_head);  // Based on NVMe protocol definition, the
-                                                                              // updated head pointer should be informed
-                                                                              // to the device
+                                     nvme_queue_pair.Completion_queue_head);
 }
 
 const NVMe_Queue_Pair* IO_Flow_Base::Get_nvme_queue_pair_info() { return &nvme_queue_pair; }

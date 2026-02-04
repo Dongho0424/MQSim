@@ -25,9 +25,10 @@ class NVM_Transaction_Flash_RD : public NVM_Transaction_Flash {
                            LPA_type lpa, PPA_type ppa, SSD_Components::User_Request* related_user_IO_request,
                            NVM::memory_content_type content, page_status_type read_sectors_bitmap,
                            data_timestamp_type data_timestamp);
-  NVM::memory_content_type Content;        // The content of this transaction
-  NVM_Transaction_Flash_WR* RelatedWrite;  // Is this read request related to another write request
-                                           // and provides update data (for partial page write)
+  // The content of this transaction
+  NVM::memory_content_type Content;
+  // Is this read request related to another write request and provides update data (for partial page write)
+  NVM_Transaction_Flash_WR* RelatedWrite;
   page_status_type read_sectors_bitmap;
   data_timestamp_type DataTimeStamp;
 };

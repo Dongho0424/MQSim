@@ -143,8 +143,7 @@ void GC_and_WL_Unit_Base::handle_transaction_serviced_signal_from_PHY(NVM_Transa
       if (pbke->Blocks[transaction->Address.BlockID].Holds_mapping_data) {
         _my_instance->address_mapping_unit->Get_translation_mapping_info_for_gc(
             transaction->Stream_id, (MVPN_type)transaction->LPA, mppa, page_status_bitmap);
-        // There has been no write on the page since GC start, and it is still
-        // valid
+        // There has been no write on the page since GC start, and it is still valid
         if (mppa == transaction->PPA) {
           _my_instance->tsu->Prepare_for_transaction_submit();
           ((NVM_Transaction_Flash_RD*)transaction)->RelatedWrite->write_sectors_bitmap = FULL_PROGRAMMED_PAGE;
@@ -162,8 +161,7 @@ void GC_and_WL_Unit_Base::handle_transaction_serviced_signal_from_PHY(NVM_Transa
         _my_instance->address_mapping_unit->Get_data_mapping_info_for_gc(transaction->Stream_id, transaction->LPA, ppa,
                                                                          page_status_bitmap);
 
-        // There has been no write on the page since GC start, and it is still
-        // valid
+        // There has been no write on the page since GC start, and it is still valid
         if (ppa == transaction->PPA) {
           _my_instance->tsu->Prepare_for_transaction_submit();
           ((NVM_Transaction_Flash_RD*)transaction)->RelatedWrite->write_sectors_bitmap = page_status_bitmap;
@@ -291,20 +289,17 @@ void GC_and_WL_Unit_Base::run_static_wearleveling(const NVM::FlashMemory::Physic
   // Run the state machine to protect against race condition
   block_manager->GC_WL_started(wl_candidate_block_id);
   pbke->Ongoing_erase_operations.insert(wl_candidate_block_id);
-  address_mapping_unit->Set_barrier_for_accessing_physical_block(
-      wl_candidate_address);                                     // Lock the block, so no user request can
-                                                                 // intervene while the GC is progressing
-  if (block_manager->Can_execute_gc_wl(wl_candidate_address)) {  // If there are ongoing requests targeting
-                                                                 // the candidate block, the gc execution
-                                                                 // should be postponed
+  // Lock the block, so no user request can intervene while the GC is progressing
+  address_mapping_unit->Set_barrier_for_accessing_physical_block(wl_candidate_address);
+  // If there are ongoing requests targeting the candidate block, the gc execution should be postponed
+  if (block_manager->Can_execute_gc_wl(wl_candidate_address)) {
     Stats::Total_wl_executions++;
     tsu->Prepare_for_transaction_submit();
 
     NVM_Transaction_Flash_ER* wl_erase_tr = new NVM_Transaction_Flash_ER(
         Transaction_Source_Type::GC_WL, pbke->Blocks[wl_candidate_block_id].Stream_id, wl_candidate_address);
-    if (block->Current_page_write_index - block->Invalid_page_count >
-        0) {  // If there are some valid pages in block, then prepare flash
-              // transactions for page movement
+    if (block->Current_page_write_index - block->Invalid_page_count > 0) {
+      // If there are some valid pages in block, then prepare flash transactions for page movement
       NVM_Transaction_Flash_RD* wl_read = NULL;
       NVM_Transaction_Flash_WR* wl_write = NULL;
       for (flash_page_ID_type pageID = 0; pageID < block->Current_page_write_index; pageID++) {
@@ -329,10 +324,9 @@ void GC_and_WL_Unit_Base::run_static_wearleveling(const NVM::FlashMemory::Physic
             wl_write->ExecutionMode = WriteExecutionModeType::SIMPLE;
             wl_write->RelatedErase = wl_erase_tr;
             wl_read->RelatedWrite = wl_write;
-            tsu->Submit_transaction(wl_read);  // Only the read transaction would be submitted. The
-                                               // Write transaction is submitted when the read
-                                               // transaction is finished and the LPA of the target
-                                               // page is determined
+            // Only the read transaction would be submitted. The Write transaction is submitted when the read
+            // transaction is finished and the LPA of the target page is determined
+            tsu->Submit_transaction(wl_read);
           }
           wl_erase_tr->Page_movement_activities.push_back(wl_write);
         }

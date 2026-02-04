@@ -480,6 +480,7 @@ void Address_Mapping_Unit_Page_Level::Translate_lpa_to_ppa_and_dispatch(
         ftl->TSU->Submit_transaction(static_cast<NVM_Transaction_Flash*>(*it));
 
         if (((NVM_Transaction_Flash*)(*it))->Type == Transaction_Type::WRITE) {
+          // RMW에 대한 read
           if (((NVM_Transaction_Flash_WR*)(*it))->RelatedRead != NULL) {
             ftl->TSU->Submit_transaction(((NVM_Transaction_Flash_WR*)(*it))->RelatedRead);
           }
@@ -1138,49 +1139,66 @@ void Address_Mapping_Unit_Page_Level::allocate_plane_for_user_write(NVM_Transact
 
 void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_Transaction_Flash_WR* transaction,
                                                                             bool is_for_gc) {
-  AddressMappingDomain* domain = domains[transaction->Stream_id];
-  PPA_type old_ppa = domain->Get_ppa(ideal_mapping_table, transaction->Stream_id, transaction->LPA);
+  const stream_id_type stream_id = transaction->Stream_id;
+  const LPA_type lpa = transaction->LPA;
+  const page_status_type new_write_bitmap = transaction->write_sectors_bitmap;
 
-  if (old_ppa == NO_PPA) /*this is the first access to the logical page*/
-  {
+  AddressMappingDomain* domain = domains[stream_id];
+  PPA_type old_ppa = domain->Get_ppa(ideal_mapping_table, stream_id, lpa);
+
+  if (old_ppa == NO_PPA) { /*this is the first access to the logical page*/
     if (is_for_gc) {
       PRINT_ERROR(
           "Unexpected mapping table status in "
           "allocate_page_in_plane_for_user_write function for a GC/WL write!")
     }
   } else {
+    NVM::FlashMemory::Physical_Page_Address old_addr;
+    Convert_ppa_to_address(old_ppa, old_addr);
+
     if (is_for_gc) {
-      NVM::FlashMemory::Physical_Page_Address addr;
-      Convert_ppa_to_address(old_ppa, addr);
-      block_manager->Invalidate_page_in_block(transaction->Stream_id, addr);
-      page_status_type page_status_in_cmt =
-          domain->Get_page_status(ideal_mapping_table, transaction->Stream_id, transaction->LPA);
-      if (page_status_in_cmt != transaction->write_sectors_bitmap)
-        PRINT_ERROR(
-            "Unexpected mapping table status in "
-            "allocate_page_in_plane_for_user_write for a GC/WL write!")
+      block_manager->Invalidate_page_in_block(stream_id, old_addr);
+      page_status_type page_status_in_cmt = domain->Get_page_status(ideal_mapping_table, stream_id, lpa);
+      if (page_status_in_cmt != new_write_bitmap)
+        PRINT_ERROR("Unexpected mapping table status in allocate_page_in_plane_for_user_write for a GC/WL write!")
     } else {
-      page_status_type prev_page_status =
-          domain->Get_page_status(ideal_mapping_table, transaction->Stream_id, transaction->LPA);
-      page_status_type status_intersection = transaction->write_sectors_bitmap & prev_page_status;
-      if (status_intersection == prev_page_status) { 
-        NVM::FlashMemory::Physical_Page_Address addr;
-        Convert_ppa_to_address(old_ppa, addr);
+      /**
+       * flash에 저장된 해당 LPA page의 valid sector bitmap
+       * new_write_bitmap: 현재 write 하고자 하는 sector bitmap
+       * overwritten_sectors: 기존과 현재의 bitmap의 intersection. new_write_bitmap의 sector가 prev_page_status를
+       * 포함하면서 더 많아도, overwrite 하면 되기 때문에 이런식으로 design.
+       * e.g.
+       * prev_page_status: 0001, new_write_bitmap: 0011, overwritten_sectors: 0001
+       * prev_page_status: 0011, new_write_bitmap: 1010, overwritten_sectors: 0010, sectors_to_read: 0001
+       */
+      page_status_type prev_page_status = domain->Get_page_status(ideal_mapping_table, stream_id, lpa);
+      page_status_type overwritten_sectors = new_write_bitmap & prev_page_status;
+
+      /**
+       * Read-Modify-Write (RMW)가 필요한지 확인해야한다.
+       * 4KB 작은 단위의 random write의 경우, 기존 page를 read, modify, write 해야한다.
+       * read: update_read_tr를 만들어 기존 trasaction->RelatedRead로 매핑해둔다.
+       * modify: CMT의 기록된 LPA에 대한 slot의 page_status_bitmap을 update 하는 식으로
+       * write: 이 함수를 호출한 Translate_lpa_to_ppa_and_dispatch에서 기존 write transaction은 그대로 진행.
+       */
+      if (overwritten_sectors == prev_page_status) {  // 기존 page를 완벽히 overwrite 한다. no need RMW
         // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
-        block_manager->Invalidate_page_in_block(transaction->Stream_id, addr);
-      } else {
-        page_status_type read_pages_bitmap = status_intersection ^ prev_page_status;
+        block_manager->Invalidate_page_in_block(stream_id, old_addr);
+      } else {  // RMW is required
+        // 부분 업데이트(RMW): 보존해야 할 데이터(읽어와야 할 섹터) 계산
+        // 로직: (기존에 있던 섹터) - (이번에 새로 쓰는 섹터)
+        const page_status_type sectors_to_read = overwritten_sectors ^ prev_page_status;
         NVM_Transaction_Flash_RD* update_read_tr = new NVM_Transaction_Flash_RD(
-            transaction->Source, transaction->Stream_id,
-            count_sector_no_from_status_bitmap(read_pages_bitmap) * SECTOR_SIZE_IN_BYTE, transaction->LPA, old_ppa,
-            transaction->UserIORequest, transaction->Content, transaction, read_pages_bitmap,
-            domain->GlobalMappingTable[transaction->LPA].TimeStamp);
+            transaction->Source, stream_id, count_sector_no_from_status_bitmap(sectors_to_read) * SECTOR_SIZE_IN_BYTE,
+            lpa, old_ppa, transaction->UserIORequest, transaction->Content, transaction, sectors_to_read,
+            domain->GlobalMappingTable[lpa].TimeStamp);
+
         Convert_ppa_to_address(old_ppa, update_read_tr->Address);
         // Inform block manager about a new transaction
         // as soon as the transaction's target address is determined
         block_manager->Read_transaction_issued(update_read_tr->Address);
         // write에서 이전 매핑이 있는 상태. 이전 매핑은 invalidate 해야한다. (out-of-place update)
-        block_manager->Invalidate_page_in_block(transaction->Stream_id, update_read_tr->Address);
+        block_manager->Invalidate_page_in_block(stream_id, update_read_tr->Address);
         transaction->RelatedRead = update_read_tr;
       }
     }
@@ -1188,20 +1206,19 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
 
   /**
    * The following lines should not be ordered with respect to the
-   * block_manager->Invalidate_page_in_block function call in the above code
-   * blocks. Otherwise, GC may be invoked (due to the call to
-   * Allocate_block_....) and may decide to move a page that is just invalidated.
+   * block_manager->Invalidate_page_in_block function call in the above code blocks.
+   * Otherwise, GC may be invoked (due to the call to Allocate_block_....)
+   * and may decide to move a page that is just invalidated.
    */
   if (is_for_gc) {
-    block_manager->Allocate_block_and_page_in_plane_for_gc_write(transaction->Stream_id, transaction->Address);
+    block_manager->Allocate_block_and_page_in_plane_for_gc_write(stream_id, transaction->Address);
   } else {
-    block_manager->Allocate_block_and_page_in_plane_for_user_write(transaction->Stream_id, transaction->Address);
+    block_manager->Allocate_block_and_page_in_plane_for_user_write(stream_id, transaction->Address);
   }
   transaction->PPA = Convert_address_to_ppa(transaction->Address);
-  domain->Update_mapping_info(
-      ideal_mapping_table, transaction->Stream_id, transaction->LPA, transaction->PPA,
-      ((NVM_Transaction_Flash_WR*)transaction)->write_sectors_bitmap |
-          domain->Get_page_status(ideal_mapping_table, transaction->Stream_id, transaction->LPA));
+  const page_status_type current_status = domain->Get_page_status(ideal_mapping_table, stream_id, lpa);
+  const page_status_type updated_bitmap = new_write_bitmap | current_status;
+  domain->Update_mapping_info(ideal_mapping_table, stream_id, transaction->LPA, transaction->PPA, updated_bitmap);
 }
 
 void Address_Mapping_Unit_Page_Level::allocate_plane_for_translation_write(NVM_Transaction_Flash* transaction) {

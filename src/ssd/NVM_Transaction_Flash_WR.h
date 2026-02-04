@@ -30,10 +30,11 @@ class NVM_Transaction_Flash_WR : public NVM_Transaction_Flash {
                            LPA_type lpa, SSD_Components::User_Request* user_io_request,
                            NVM::memory_content_type content, page_status_type write_sectors_bitmap,
                            data_timestamp_type data_timestamp);
-  NVM::memory_content_type Content;       // The content of this transaction
-  NVM_Transaction_Flash_RD* RelatedRead;  // If this write request must be preceded by a read (for
-                                          // partial page write), this variable is used to point to
-                                          // the corresponding read request
+  // The content of this transaction
+  NVM::memory_content_type Content;
+  // If this write request must be preceded by a read (for partial page write), this variable is used to point tothe
+  // corresponding read request
+  NVM_Transaction_Flash_RD* RelatedRead;
   NVM_Transaction_Flash_ER* RelatedErase;
   page_status_type write_sectors_bitmap;
   data_timestamp_type DataTimeStamp;

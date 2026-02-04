@@ -42,7 +42,7 @@
 			<Die_IDs>0</Die_IDs>
 			<Plane_IDs>0,1</Plane_IDs>
 			<Initial_Occupancy_Percentage>70</Initial_Occupancy_Percentage>
-			<File_Path>traces/fio_traces/rand_read.txt</File_Path>
+			<File_Path>traces/fio_traces/rand_read_4K.txt</File_Path>
 			<Percentage_To_Be_Executed>100</Percentage_To_Be_Executed>
 			<Relay_Count>1</Relay_Count>
 			<Time_Unit>NANOSECOND</Time_Unit>
@@ -58,7 +58,39 @@
 			<Die_IDs>0</Die_IDs>
 			<Plane_IDs>0,1</Plane_IDs>
 			<Initial_Occupancy_Percentage>70</Initial_Occupancy_Percentage>
-			<File_Path>traces/fio_traces/rand_write.txt</File_Path>
+			<File_Path>traces/fio_traces/rand_write_4K.txt</File_Path>
+			<Percentage_To_Be_Executed>100</Percentage_To_Be_Executed>
+			<Relay_Count>1</Relay_Count>
+			<Time_Unit>NANOSECOND</Time_Unit>
+		</IO_Flow_Parameter_Set_Trace_Based>
+	</IO_Scenario> 
+
+	<IO_Scenario>
+		<IO_Flow_Parameter_Set_Trace_Based>
+			<Priority_Class>URGENT</Priority_Class>
+			<Device_Level_Data_Caching_Mode>WRITE_CACHE</Device_Level_Data_Caching_Mode>
+			<Channel_IDs>0,1,2,3,4,5,6,7</Channel_IDs>
+			<Chip_IDs>0,1,2,3</Chip_IDs>
+			<Die_IDs>0</Die_IDs>
+			<Plane_IDs>0,1</Plane_IDs>
+			<Initial_Occupancy_Percentage>70</Initial_Occupancy_Percentage>
+			<File_Path>traces/fio_traces/rand_read_16K.txt</File_Path>
+			<Percentage_To_Be_Executed>100</Percentage_To_Be_Executed>
+			<Relay_Count>1</Relay_Count>
+			<Time_Unit>NANOSECOND</Time_Unit>
+		</IO_Flow_Parameter_Set_Trace_Based>
+	</IO_Scenario>
+
+	<IO_Scenario>
+		<IO_Flow_Parameter_Set_Trace_Based>
+			<Priority_Class>URGENT</Priority_Class>
+			<Device_Level_Data_Caching_Mode>WRITE_CACHE</Device_Level_Data_Caching_Mode>
+			<Channel_IDs>0,1,2,3,4,5,6,7</Channel_IDs>
+			<Chip_IDs>0,1,2,3</Chip_IDs>
+			<Die_IDs>0</Die_IDs>
+			<Plane_IDs>0,1</Plane_IDs>
+			<Initial_Occupancy_Percentage>70</Initial_Occupancy_Percentage>
+			<File_Path>traces/fio_traces/rand_write_16K.txt</File_Path>
 			<Percentage_To_Be_Executed>100</Percentage_To_Be_Executed>
 			<Relay_Count>1</Relay_Count>
 			<Time_Unit>NANOSECOND</Time_Unit>

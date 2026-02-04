@@ -76,14 +76,13 @@ class IO_Flow_Base : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Rep
 
  protected:
   uint16_t flow_id;
-  double initial_occupancy_ratio;               // The initial amount of valid logical pages
-                                                // when pereconditioning is performed
-  sim_time_type stop_time;                      // The flow stops generating request when simulation
-                                                // time reaches stop_time
-  unsigned int total_requests_to_be_generated;  // If stop_time is zero, then the flow
-                                                // stops generating request when the
-                                                // number of generated requests is equal
-                                                // to total_req_count
+  // The initial amount of valid logical pages when pereconditioning is performed
+  double initial_occupancy_ratio;
+  // The flow stops generating request when simulation time reaches stop_time
+  sim_time_type stop_time;
+  // If stop_time is zero, then the flow stops generating request when the number of generated requests is equal to
+  // total_req_count
+  unsigned int total_requests_to_be_generated;
   HostInterface_Types SSD_device_type;
   PCIe_Root_Complex* pcie_root_complex;
   SATA_HBA* sata_hba;
@@ -99,11 +98,9 @@ class IO_Flow_Base : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Rep
   uint16_t nvme_completion_queue_size;  // IO queue depth
   std::set<uint16_t> available_command_ids;
   std::vector<Host_IO_Request*> request_queue_in_memory;
-  // The I/O requests that are still waiting to be
-  // enqueued in the I/O queue (the I/O queue is full)
+  // The I/O requests that are still waiting to be enqueued in the I/O queue (the I/O queue is full)
   std::list<Host_IO_Request*> waiting_requests;
-  // The I/O requests that are enqueued in the
-  // I/O queue of the SSD device
+  // The I/O requests that are enqueued in the I/O queue of the SSD device
   std::unordered_map<sim_time_type, Host_IO_Request*> nvme_software_request_queue;
   void NVMe_update_and_submit_completion_queue_tail();
 
