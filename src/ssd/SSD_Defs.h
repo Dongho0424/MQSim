@@ -33,7 +33,7 @@ typedef uint64_t data_cache_content_type;
 #define LPN_TO_UNIQUE_KEY(STREAM, LPN) ((((LPA_type)STREAM) << 56) | LPN)
 #define UNIQUE_KEY_TO_LPN(STREAM, LPN) ((~(((LPA_type)STREAM) << 56)) & LPN)
 
-inline unsigned int count_sector_no_from_status_bitmap(const page_status_type page_status) {
+inline unsigned int count_sectors_from_bitmap(const page_status_type page_status) {
   unsigned int size = 0;
   for (int i = 0; i < 64; i++) {
     if ((((page_status_type)1) << i) & page_status) {

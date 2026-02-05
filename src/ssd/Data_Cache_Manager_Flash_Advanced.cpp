@@ -204,15 +204,14 @@ void Data_Cache_Manager_Flash_Advanced::process_new_user_request(User_Request* u
                 per_stream_cache[tr->Stream_id]->Get_slot(tr->Stream_id, tr->LPA).State_bitmap_of_existing_sectors &
                 tr->read_sectors_bitmap;
             if (available_sectors_bitmap == tr->read_sectors_bitmap) {
-              user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(tr->read_sectors_bitmap);
+              user_request->Sectors_serviced_from_cache += count_sectors_from_bitmap(tr->read_sectors_bitmap);
               // the ++ operation should happen here, otherwise the iterator will be part of the list after erasing it
               // from the list
               user_request->Transaction_list.erase(it++);
             } else if (available_sectors_bitmap != 0) {
-              user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(available_sectors_bitmap);
+              user_request->Sectors_serviced_from_cache += count_sectors_from_bitmap(available_sectors_bitmap);
               tr->read_sectors_bitmap = (tr->read_sectors_bitmap & ~available_sectors_bitmap);
-              tr->Data_and_metadata_size_in_byte -=
-                  count_sector_no_from_status_bitmap(available_sectors_bitmap) * SECTOR_SIZE_IN_BYTE;
+              tr->size -= count_sectors_from_bitmap(available_sectors_bitmap) * SECTOR_SIZE_IN_BYTE;
               it++;
             } else {
               it++;
@@ -305,24 +304,22 @@ void Data_Cache_Manager_Flash_Advanced::write_to_destage_buffer(User_Request* us
         if (evicted_slot.Status == Cache_Slot_Status::DIRTY_NO_FLASH_WRITEBACK) {
           evicted_cache_slots->push_back(new NVM_Transaction_Flash_WR(
               Transaction_Source_Type::CACHE, tr->Stream_id,
-              count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors) * SECTOR_SIZE_IN_BYTE,
+              count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors) * SECTOR_SIZE_IN_BYTE,
               evicted_slot.LPA, NULL, IO_Flow_Priority_Class::URGENT, evicted_slot.Content,
               evicted_slot.State_bitmap_of_existing_sectors, evicted_slot.Timestamp));
           cache_eviction_read_size_in_sectors +=
-              count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
-          // DEBUG2("Evicting page" << evicted_slot.LPA << " from write buffer
-          // ")
+              count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
         }
       }
       per_stream_cache[tr->Stream_id]->Insert_write_data(tr->Stream_id, tr->LPA, tr->Content, tr->DataTimeStamp,
                                                          tr->write_sectors_bitmap);
     }
-    dram_write_size_in_sectors += count_sector_no_from_status_bitmap(tr->write_sectors_bitmap);
+    dram_write_size_in_sectors += count_sectors_from_bitmap(tr->write_sectors_bitmap);
     // hot/cold data separation
     if (bloom_filter[tr->Stream_id].find(tr->LPA) == bloom_filter[tr->Stream_id].end()) {
       per_stream_cache[tr->Stream_id]->Change_slot_status_to_writeback(tr->Stream_id,
                                                                        tr->LPA);  // Eagerly write back cold data
-      flash_written_back_write_size_in_sectors += count_sector_no_from_status_bitmap(tr->write_sectors_bitmap);
+      flash_written_back_write_size_in_sectors += count_sectors_from_bitmap(tr->write_sectors_bitmap);
       bloom_filter[user_request->Stream_id].insert(tr->LPA);
       writeback_transactions.push_back(tr);
     }
@@ -430,8 +427,7 @@ void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_
             if (evicted_slot.Status == Cache_Slot_Status::DIRTY_NO_FLASH_WRITEBACK) {
               Memory_Transfer_Info* transfer_info = new Memory_Transfer_Info;
               transfer_info->Size_in_bytes =
-                  count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors) *
-                  SECTOR_SIZE_IN_BYTE;
+                  count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors) * SECTOR_SIZE_IN_BYTE;
               evicted_cache_slots->push_back(new NVM_Transaction_Flash_WR(
                   Transaction_Source_Type::USERIO, transaction->Stream_id, transfer_info->Size_in_bytes,
                   evicted_slot.LPA, NULL, IO_Flow_Priority_Class::UNDEFINED, evicted_slot.Content,
@@ -441,7 +437,7 @@ void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_
                   Data_Cache_Simulation_Event_Type::MEMORY_READ_FOR_CACHE_EVICTION_FINISHED;
               transfer_info->Stream_id = transaction->Stream_id;
               unsigned int cache_eviction_read_size_in_sectors =
-                  count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
+                  count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
               int sharing_id = transaction->Stream_id;
               if (((Data_Cache_Manager_Flash_Advanced*)_my_instance)->shared_dram_request_queue) {
                 sharing_id = 0;
@@ -460,7 +456,7 @@ void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_
 
           Memory_Transfer_Info* transfer_info = new Memory_Transfer_Info;
           transfer_info->Size_in_bytes =
-              count_sector_no_from_status_bitmap(((NVM_Transaction_Flash_RD*)transaction)->read_sectors_bitmap) *
+              count_sectors_from_bitmap(((NVM_Transaction_Flash_RD*)transaction)->read_sectors_bitmap) *
               SECTOR_SIZE_IN_BYTE;
           transfer_info->next_event_type = Data_Cache_Simulation_Event_Type::MEMORY_WRITE_FOR_CACHE_FINISHED;
           transfer_info->Stream_id = transaction->Stream_id;
@@ -490,8 +486,7 @@ void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_
           sharing_id = 0;
         }
         ((Data_Cache_Manager_Flash_Advanced*)_my_instance)->back_pressure_buffer_depth[sharing_id] -=
-            transaction->Data_and_metadata_size_in_byte / SECTOR_SIZE_IN_BYTE +
-            (transaction->Data_and_metadata_size_in_byte % SECTOR_SIZE_IN_BYTE == 0 ? 0 : 1);
+            transaction->size / SECTOR_SIZE_IN_BYTE + (transaction->size % SECTOR_SIZE_IN_BYTE == 0 ? 0 : 1);
 
         if (((Data_Cache_Manager_Flash_Advanced*)_my_instance)
                 ->per_stream_cache[transaction->Stream_id]
@@ -546,14 +541,14 @@ void Data_Cache_Manager_Flash_Advanced::handle_transaction_serviced_signal_from_
               evicted_cache_slots->push_back(new
         NVM_Transaction_Flash_WR(Transaction_Source_Type::CACHE,
                 transaction->Stream_id,
-        count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors)
+        count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors)
         * SECTOR_SIZE_IN_BYTE, evicted_slot.LPA, NULL,
         IO_Flow_Priority_Class::UNDEFINED, evicted_slot.Content,
         evicted_slot.State_bitmap_of_existing_sectors, evicted_slot.Timestamp));
               _my_instance->back_pressure_buffer_depth[sharing_id] +=
-        count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
+        count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
               cache_eviction_read_size_in_sectors +=
-        count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
+        count_sectors_from_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
             }
             else break;
             if (_my_instance->back_pressure_buffer_depth[sharing_id] >=

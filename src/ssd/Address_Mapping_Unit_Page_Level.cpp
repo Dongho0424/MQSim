@@ -1176,7 +1176,7 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
         // 로직: (기존에 있던 섹터) - (이번에 새로 쓰는 섹터)
         const page_status_type sectors_to_read = overwritten_sectors ^ prev_page_status;
         NVM_Transaction_Flash_RD* update_read_tr = new NVM_Transaction_Flash_RD(
-            transaction->Source, stream_id, count_sector_no_from_status_bitmap(sectors_to_read) * SECTOR_SIZE_IN_BYTE,
+            transaction->Source, stream_id, count_sectors_from_bitmap(sectors_to_read) * SECTOR_SIZE_IN_BYTE,
             lpa, old_ppa, transaction->UserIORequest, transaction->Content, transaction, sectors_to_read,
             domain->GMT[lpa].TimeStamp);
 
@@ -1376,7 +1376,8 @@ bool Address_Mapping_Unit_Page_Level::request_mapping_entry(const stream_id_type
    * 2. A read has been issued to retrieve the mapping data for some previous user requests
    **/
   // 해당 mvpn를 가져오는 trasaction이 존재하는가?
-  if (domain->ArrivingMappingEntries.find(mvpn) != domain->ArrivingMappingEntries.end()) {
+  // end(): 마지막 원소 아니고, NULL인 sentinel space 가리키는 포인터.
+  if (domain->ArrivingMappingEntries.find(mvpn) != domain->ArrivingMappingEntries.end()) { 
     if (cmt->Is_slot_reserved_for_lpn_and_waiting(stream_id, lpa)) {
       return false;
     } else {  // An entry should be created in the cache

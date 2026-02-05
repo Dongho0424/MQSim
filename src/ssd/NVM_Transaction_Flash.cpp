@@ -6,7 +6,7 @@ NVM_Transaction_Flash::NVM_Transaction_Flash(Transaction_Source_Type source, Tra
                                              PPA_type ppa, User_Request* user_request,
                                              IO_Flow_Priority_Class::Priority priority_class)
     : NVM_Transaction(stream_id, source, type, user_request, priority_class),
-      Data_and_metadata_size_in_byte(data_size_in_byte),
+      size(data_size_in_byte),
       LPA(lpa),
       PPA(ppa),
       Physical_address_determined(false),
@@ -18,7 +18,7 @@ NVM_Transaction_Flash::NVM_Transaction_Flash(Transaction_Source_Type source, Tra
                                              User_Request* user_request,
                                              IO_Flow_Priority_Class::Priority priority_class)
     : NVM_Transaction(stream_id, source, type, user_request, priority_class),
-      Data_and_metadata_size_in_byte(data_size_in_byte),
+      size(data_size_in_byte),
       LPA(lpa),
       PPA(ppa),
       Address(address),

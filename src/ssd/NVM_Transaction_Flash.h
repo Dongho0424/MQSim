@@ -27,9 +27,8 @@ class NVM_Transaction_Flash : public NVM_Transaction {
                         const NVM::FlashMemory::Physical_Page_Address& address, User_Request* user_request,
                         IO_Flow_Priority_Class::Priority priority_class);
   NVM::FlashMemory::Physical_Page_Address Address;
-  unsigned int Data_and_metadata_size_in_byte;  // number of bytes contained in
-                                                // the request: bytes in the
-                                                // real page + bytes of metadata
+  // size in bytes contained in the request: the real page + metadata
+  unsigned int size;
 
   LPA_type LPA;
   PPA_type PPA;

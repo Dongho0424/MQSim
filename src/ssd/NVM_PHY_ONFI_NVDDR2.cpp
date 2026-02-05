@@ -93,7 +93,7 @@ sim_time_type NVM_PHY_ONFI_NVDDR2::Expected_finish_time(NVM_Transaction_Flash* t
 }
 
 sim_time_type NVM_PHY_ONFI_NVDDR2::Expected_transfer_time(NVM_Transaction_Flash* transaction) {
-  return NVDDR2DataInTransferTime(transaction->Data_and_metadata_size_in_byte,
+  return NVDDR2DataInTransferTime(transaction->size,
                                   channels[transaction->Address.ChannelID]);
 }
 
@@ -234,8 +234,8 @@ void NVM_PHY_ONFI_NVDDR2::Send_command_to_chip(std::list<NVM_Transaction_Flash*>
         for (std::list<NVM_Transaction_Flash*>::iterator it = transaction_list.begin(); it != transaction_list.end();
              it++) {
           (*it)->STAT_transfer_time += target_channel->ProgramCommandTime[transaction_list.size()] +
-                                       NVDDR2DataInTransferTime((*it)->Data_and_metadata_size_in_byte, target_channel);
-          data_transfer_time += NVDDR2DataInTransferTime((*it)->Data_and_metadata_size_in_byte, target_channel);
+                                       NVDDR2DataInTransferTime((*it)->size, target_channel);
+          data_transfer_time += NVDDR2DataInTransferTime((*it)->size, target_channel);
         }
         if (chipBKE->OngoingDieCMDTransfers.size() == 0) {
           targetChip->StartCMDDataInXfer();
@@ -665,12 +665,12 @@ inline void NVM_PHY_ONFI_NVDDR2::transfer_read_data_from_chip(ChipBookKeepingEnt
   dieBKE->ActiveTransfer = tr;
   channels[tr->Address.ChannelID]->Chips[tr->Address.ChipID]->StartDataOutXfer();
   chipBKE->Status = ChipStatus::DATA_OUT;
-  Simulator->Register_sim_event(Simulator->Time() + NVDDR2DataOutTransferTime(tr->Data_and_metadata_size_in_byte,
+  Simulator->Register_sim_event(Simulator->Time() + NVDDR2DataOutTransferTime(tr->size,
                                                                               channels[tr->Address.ChannelID]),
                                 this, dieBKE, (int)NVDDR2_SimEventType::READ_DATA_TRANSFERRED);
 
   tr->STAT_transfer_time +=
-      NVDDR2DataOutTransferTime(tr->Data_and_metadata_size_in_byte, channels[tr->Address.ChannelID]);
+      NVDDR2DataOutTransferTime(tr->size, channels[tr->Address.ChannelID]);
   channels[tr->Address.ChannelID]->SetStatus(BusChannelStatus::BUSY,
                                              channels[tr->Address.ChannelID]->Chips[tr->Address.ChipID]);
 }

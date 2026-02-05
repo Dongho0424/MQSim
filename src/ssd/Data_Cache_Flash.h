@@ -11,7 +11,12 @@
 #include "SSD_Defs.h"
 
 namespace SSD_Components {
-enum class Cache_Slot_Status { EMPTY, CLEAN, DIRTY_NO_FLASH_WRITEBACK, DIRTY_FLASH_WRITEBACK };
+enum class Cache_Slot_Status {
+  EMPTY,
+  CLEAN,
+  DIRTY_NO_FLASH_WRITEBACK,  // dirty && no writeback yet
+  DIRTY_FLASH_WRITEBACK      // dirty && yes writeback already
+};
 struct Data_Cache_Slot_Type {
   unsigned long long State_bitmap_of_existing_sectors;
   LPA_type LPA;
