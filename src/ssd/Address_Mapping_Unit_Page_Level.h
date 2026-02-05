@@ -111,7 +111,11 @@ class AddressMappingDomain {
 
   std::multimap<LPA_type, NVM_Transaction_Flash*> Waiting_unmapped_read_transactions;
   std::multimap<LPA_type, NVM_Transaction_Flash*> Waiting_unmapped_program_transactions;
+  // flash에서 read를 요청한 GMT entry 들의 list. (DRAM <= Flash)
+  // 2개 이상의 LPA가 같은 MVPN, translation page를 가리키고 있었다면 하나로 merge 할 수 있으니까. 
   std::multimap<MVPN_type, LPA_type> ArrivingMappingEntries;
+  // flash로 write 요청한 GMT entry 들의 list. (DRAM => Flash)
+  // 2개 이상의 LPA가 같은 MVPN, translation page를 가리키고 있었다면 하나로 merge 할 수 있으니까. 
   std::set<MVPN_type> DepartingMappingEntries;
   // Used to manage race conditions, i.e. a user request accesses and LPA while GC is moving that LPA
   std::set<LPA_type> Locked_LPAs;    
