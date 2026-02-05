@@ -74,30 +74,34 @@ class Cached_Mapping_Table {
  * partitioning of CMT space among concurrent streams).*/
 class AddressMappingDomain {
  public:
-  AddressMappingDomain(unsigned int cmt_capacity, unsigned int cmt_entry_size,
-                       unsigned int no_of_translation_entries_per_page, Cached_Mapping_Table* CMT,
-                       Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme, flash_channel_ID_type* channel_ids,
-                       unsigned int channel_no, flash_chip_ID_type* chip_ids, unsigned int chip_no,
-                       flash_die_ID_type* die_ids, unsigned int die_no, flash_plane_ID_type* plane_ids,
-                       unsigned int plane_no, PPA_type total_physical_sectors_no, LHA_type total_logical_sectors_no,
-                       unsigned int sectors_no_per_page);
+  AddressMappingDomain(unsigned int cmt_capacity, unsigned int cmt_entry_size, unsigned int GMT_entries_per_page,
+                       Cached_Mapping_Table* CMT, Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme,
+                       flash_channel_ID_type* channel_ids, unsigned int channel_no, flash_chip_ID_type* chip_ids,
+                       unsigned int chip_no, flash_die_ID_type* die_ids, unsigned int die_no,
+                       flash_plane_ID_type* plane_ids, unsigned int plane_no, PPA_type total_physical_sectors_no,
+                       LHA_type total_logical_sectors_no, unsigned int sectors_no_per_page);
   ~AddressMappingDomain();
 
-  /* Stores the mapping of Virtual Translation Page Number (MVPN) to Physical
-   * Translation Page Number (MPPN). It is always kept in volatile memory.*/
-  GTDEntryType* GlobalTranslationDirectory;
+  // Global Translation Directory
+  // Stores the mapping of Virtual Translation Page Number (MVPN) to 
+  // Physical Translation Page Number (MPPN). It is always kept in volatile memory.
+  GTDEntryType* GTD;  
 
-  /*The cached mapping table that is implemented based on the DFLT (Gupta et
-   * al., ASPLOS 2009) proposal. It is always stored in volatile memory.*/
-  unsigned int CMT_entry_size;
-  unsigned int Translation_entries_per_page;
+  // Cached Mapping Table
+  // The cached mapping table that is implemented based on the DFLT (Gupta et al., ASPLOS 2009) proposal. 
+  // It is always stored in volatile memory.
   Cached_Mapping_Table* CMT;
+
+  // Global Mapping Table
+  // The logical to physical address mapping of all data pages that is
+  // implemented based on the DFTL (Gupta et al., ASPLOS 2009) proposal. 
+  // It is always stored in non-volatile flash memory.
+  GMTEntryType* GMT;  
+
+  unsigned int CMT_entry_size;
+  unsigned int GMT_entries_per_page;
   unsigned int No_of_inserted_entries_in_preconditioning;
 
-  /*The logical to physical address mapping of all data pages that is
-   * implemented based on the DFTL (Gupta et al., ASPLOS 2009( proposal. It is
-   * always stored in non-volatile flash memory.*/
-  GMTEntryType* GlobalMappingTable;
   void Update_mapping_info(const bool ideal_mapping, const stream_id_type stream_id, const LPA_type lpa,
                            const PPA_type ppa, const page_status_type page_status_bitmap);
   page_status_type Get_page_status(const bool ideal_mapping, const stream_id_type stream_id, const LPA_type lpa);
@@ -109,9 +113,10 @@ class AddressMappingDomain {
   std::multimap<LPA_type, NVM_Transaction_Flash*> Waiting_unmapped_program_transactions;
   std::multimap<MVPN_type, LPA_type> ArrivingMappingEntries;
   std::set<MVPN_type> DepartingMappingEntries;
-  std::set<LPA_type> Locked_LPAs;    // Used to manage race conditions, i.e. a user request
-                                     // accesses and LPA while GC is moving that LPA
-  std::set<MVPN_type> Locked_MVPNs;  // Used to manage race conditions
+  // Used to manage race conditions, i.e. a user request accesses and LPA while GC is moving that LPA
+  std::set<LPA_type> Locked_LPAs;    
+  // Used to manage race conditions
+  std::set<MVPN_type> Locked_MVPNs;  
   std::multimap<LPA_type, NVM_Transaction_Flash*> Read_transactions_behind_LPA_barrier;
   std::multimap<LPA_type, NVM_Transaction_Flash*> Write_transactions_behind_LPA_barrier;
   std::set<MVPN_type> MVPN_read_transactions_waiting_behind_barrier;
@@ -128,9 +133,9 @@ class AddressMappingDomain {
   unsigned int Plane_no;
 
   LHA_type max_logical_sector_address;
-  LPA_type Total_logical_pages_no;  // without operprovisioned pages
-  PPA_type Total_physical_pages_no;
-  MVPN_type Total_translation_pages_no;
+  LPA_type total_logical_pages_no;  // without operprovisioned pages
+  PPA_type total_physical_pages_no;
+  MVPN_type total_GTD_entries;
 };
 
 class Address_Mapping_Unit_Page_Level : public Address_Mapping_Unit_Base {
@@ -187,9 +192,9 @@ class Address_Mapping_Unit_Page_Level : public Address_Mapping_Unit_Base {
   AddressMappingDomain** domains;
   // In CMT MQSim stores (lpn, ppn, page status bits) but
   // in GTD it only stores (ppn, page status bits)
-  unsigned int CMT_entry_size, GTD_entry_size;
+  unsigned int CMT_entry_size, GMT_entry_size;
   void setup_plane_address(stream_id_type stream_id, LPA_type lpa,
-                                                            NVM::FlashMemory::Physical_Page_Address& targetAddress);
+                           NVM::FlashMemory::Physical_Page_Address& targetAddress);
   void allocate_plane_for_user_write(NVM_Transaction_Flash_WR* transaction);
   void allocate_page_in_plane_for_user_write(NVM_Transaction_Flash_WR* transaction, bool is_for_gc);
   void allocate_plane_for_translation_write(NVM_Transaction_Flash* transaction);
@@ -204,10 +209,10 @@ class Address_Mapping_Unit_Page_Level : public Address_Mapping_Unit_Base {
   void generate_flash_read_request_for_mapping_data(const stream_id_type streamID, const LPA_type lpn);
   void generate_flash_writeback_request_for_mapping_data(const stream_id_type streamID, const LPA_type lpn);
 
-  unsigned int no_of_translation_entries_per_page;
+  unsigned int GMT_entries_per_page;
   MVPN_type get_MVPN(const LPA_type lpn, stream_id_type stream_id);
-  LPA_type get_start_LPN_in_MVP(const MVPN_type);
-  LPA_type get_end_LPN_in_MVP(const MVPN_type);
+  LPA_type get_start_LPN(const MVPN_type);
+  LPA_type get_end_LPN(const MVPN_type);
 
   bool query_cmt(NVM_Transaction_Flash* transaction);
   PPA_type online_create_entry_for_reads(LPA_type lpa, const stream_id_type stream_id,

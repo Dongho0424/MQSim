@@ -149,9 +149,7 @@ void Data_Cache_Manager_Flash_Simple::write_to_destage_buffer(User_Request* user
   std::list<NVM_Transaction*> writeback_transactions;
   auto it = user_request->Transaction_list.begin();
 
-  /**
-   * back_pressure: write cache에서 현재 처리 가능한 용량을 말함 -> 제거
-   */
+  // back_pressure: write cache에서 flash로 보내는 on-the-fly transactions의 현재 처리 가능한 upper bound 용량
   while (it != user_request->Transaction_list.end() &&
          (back_pressure_buffer_depth + cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors) <
              back_pressure_buffer_max_depth) {

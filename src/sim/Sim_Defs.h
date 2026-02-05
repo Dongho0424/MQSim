@@ -6,6 +6,7 @@
 #include <string>
 
 typedef uint64_t sim_time_type;
+// io_scenario의 concurrent io_flows에 대한 각 id. [term] flow = stream
 typedef uint16_t stream_id_type;
 typedef sim_time_type data_timestamp_type;
 

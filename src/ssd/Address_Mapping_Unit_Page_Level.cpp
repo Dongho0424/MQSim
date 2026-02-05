@@ -86,6 +86,7 @@ void Cached_Mapping_Table::Insert_new_mapping_info(const stream_id_type streamID
   it->second->Stream_id = streamID;
   DEBUG("Address mapping table insert entry - Stream ID:" << streamID << ", LPA:" << lpa << ", PPA:" << ppa)
 }
+
 bool Cached_Mapping_Table::Is_slot_reserved_for_lpn_and_waiting(const stream_id_type streamID, const LPA_type lpn) {
   LPA_type key = LPN_TO_UNIQUE_KEY(streamID, lpn);
   auto it = addressMap.find(key);
@@ -151,23 +152,23 @@ void Cached_Mapping_Table::Make_clean(const stream_id_type streamID, const LPA_t
 }
 
 AddressMappingDomain::AddressMappingDomain(
-    unsigned int cmt_capacity, unsigned int cmt_entry_size, unsigned int no_of_translation_entries_per_page,
+    unsigned int cmt_capacity, unsigned int cmt_entry_size, unsigned int GMT_entries_per_page,
     Cached_Mapping_Table* CMT, Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme,
     flash_channel_ID_type* channel_ids, unsigned int channel_no, flash_chip_ID_type* chip_ids, unsigned int chip_no,
     flash_die_ID_type* die_ids, unsigned int die_no, flash_plane_ID_type* plane_ids, unsigned int plane_no,
     PPA_type total_physical_sectors_no, LHA_type total_logical_sectors_no, unsigned int sectors_no_per_page)
     : CMT_entry_size(cmt_entry_size),
-      Translation_entries_per_page(no_of_translation_entries_per_page),
+      GMT_entries_per_page(GMT_entries_per_page),
       No_of_inserted_entries_in_preconditioning(0),
       PlaneAllocationScheme(PlaneAllocationScheme),
       Channel_no(channel_no),
       Chip_no(chip_no),
       Die_no(die_no),
       Plane_no(plane_no) {
-  Total_physical_pages_no = total_physical_sectors_no / sectors_no_per_page;
+  total_physical_pages_no = total_physical_sectors_no / sectors_no_per_page;
   max_logical_sector_address = total_logical_sectors_no;
-  Total_logical_pages_no = (max_logical_sector_address / sectors_no_per_page) +
-                           (max_logical_sector_address % sectors_no_per_page == 0 ? 0 : 1);
+  // ceiling division
+  total_logical_pages_no = (max_logical_sector_address + sectors_no_per_page - 1) / sectors_no_per_page;
 
   Channel_ids = new flash_channel_ID_type[channel_no];
   for (flash_channel_ID_type cid = 0; cid < channel_no; cid++) {
@@ -189,11 +190,11 @@ AddressMappingDomain::AddressMappingDomain(
     Plane_ids[pid] = plane_ids[pid];
   }
 
-  GlobalMappingTable = new GMTEntryType[Total_logical_pages_no];
-  for (unsigned int i = 0; i < Total_logical_pages_no; i++) {
-    GlobalMappingTable[i].PPA = NO_PPA;
-    GlobalMappingTable[i].WrittenStateBitmap = UNWRITTEN_LOGICAL_PAGE;
-    GlobalMappingTable[i].TimeStamp = 0;
+  GMT = new GMTEntryType[total_logical_pages_no];
+  for (unsigned int i = 0; i < total_logical_pages_no; i++) {
+    GMT[i].PPA = NO_PPA;
+    GMT[i].WrittenStateBitmap = UNWRITTEN_LOGICAL_PAGE;
+    GMT[i].TimeStamp = 0;
   }
 
   // If CMT is NULL, then each address mapping domain should create its own CMT
@@ -207,18 +208,18 @@ AddressMappingDomain::AddressMappingDomain(
     this->CMT = CMT;
   }
 
-  Total_translation_pages_no = MVPN_type(Total_logical_pages_no / Translation_entries_per_page);
-  GlobalTranslationDirectory = new GTDEntryType[Total_translation_pages_no + 1];
-  for (MVPN_type i = 0; i <= Total_translation_pages_no; i++) {
-    GlobalTranslationDirectory[i].MPPN = (MPPN_type)NO_MPPN;
-    GlobalTranslationDirectory[i].TimeStamp = INVALID_TIME_STAMP;
+  total_GTD_entries = MVPN_type(total_logical_pages_no / GMT_entries_per_page);
+  GTD = new GTDEntryType[total_GTD_entries + 1];
+  for (MVPN_type i = 0; i <= total_GTD_entries; i++) {
+    GTD[i].MPPN = (MPPN_type)NO_MPPN;
+    GTD[i].TimeStamp = INVALID_TIME_STAMP;
   }
 }
 
 AddressMappingDomain::~AddressMappingDomain() {
   delete CMT;
-  delete[] GlobalMappingTable;
-  delete[] GlobalTranslationDirectory;
+  delete[] GMT;
+  delete[] GTD;
 
   auto read_entry = Waiting_unmapped_read_transactions.begin();
   while (read_entry != Waiting_unmapped_read_transactions.end()) {
@@ -242,9 +243,9 @@ inline void AddressMappingDomain::Update_mapping_info(const bool ideal_mapping, 
                                                       const LPA_type lpa, const PPA_type ppa,
                                                       const page_status_type page_status_bitmap) {
   if (ideal_mapping) {
-    GlobalMappingTable[lpa].PPA = ppa;
-    GlobalMappingTable[lpa].WrittenStateBitmap = page_status_bitmap;
-    GlobalMappingTable[lpa].TimeStamp = CurrentTimeStamp;
+    GMT[lpa].PPA = ppa;
+    GMT[lpa].WrittenStateBitmap = page_status_bitmap;
+    GMT[lpa].TimeStamp = CurrentTimeStamp;
   } else {
     CMT->Update_mapping_info(stream_id, lpa, ppa, page_status_bitmap);
   }
@@ -253,7 +254,7 @@ inline void AddressMappingDomain::Update_mapping_info(const bool ideal_mapping, 
 inline page_status_type AddressMappingDomain::Get_page_status(const bool ideal_mapping, const stream_id_type stream_id,
                                                               const LPA_type lpa) {
   if (ideal_mapping) {
-    return GlobalMappingTable[lpa].WrittenStateBitmap;
+    return GMT[lpa].WrittenStateBitmap;
   } else {
     return CMT->Get_bitmap_vector_of_written_sectors(stream_id, lpa);
   }
@@ -262,14 +263,14 @@ inline page_status_type AddressMappingDomain::Get_page_status(const bool ideal_m
 inline PPA_type AddressMappingDomain::Get_ppa(const bool ideal_mapping, const stream_id_type stream_id,
                                               const LPA_type lpa) {
   if (ideal_mapping) {
-    return GlobalMappingTable[lpa].PPA;
+    return GMT[lpa].PPA;
   } else {
     return CMT->Retrieve_ppa(stream_id, lpa);
   }
 }
 
 inline PPA_type AddressMappingDomain::Get_ppa_for_preconditioning(const stream_id_type stream_id, const LPA_type lpa) {
-  return GlobalMappingTable[lpa].PPA;
+  return GMT[lpa].PPA;
 }
 
 inline bool AddressMappingDomain::Mapping_entry_accessible(const bool ideal_mapping, const stream_id_type stream_id,
@@ -285,30 +286,28 @@ Address_Mapping_Unit_Page_Level* Address_Mapping_Unit_Page_Level::_my_instance =
 Address_Mapping_Unit_Page_Level::Address_Mapping_Unit_Page_Level(
     const sim_object_id_type& id, FTL* ftl, NVM_PHY_ONFI* flash_controller, Flash_Block_Manager_Base* block_manager,
     bool ideal_mapping_table, unsigned int cmt_capacity_in_byte,
-    Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme, unsigned int concurrent_stream_no,
-    unsigned int channel_count, unsigned int chip_no_per_channel, unsigned int die_no_per_chip,
-    unsigned int plane_no_per_die, std::vector<std::vector<flash_channel_ID_type>> stream_channel_ids,
+    Flash_Plane_Allocation_Scheme_Type PlaneAllocationScheme, unsigned int io_flows_cnt, unsigned int channel_count,
+    unsigned int chip_no_per_channel, unsigned int die_no_per_chip, unsigned int plane_no_per_die,
+    std::vector<std::vector<flash_channel_ID_type>> stream_channel_ids,
     std::vector<std::vector<flash_chip_ID_type>> stream_chip_ids,
     std::vector<std::vector<flash_die_ID_type>> stream_die_ids,
     std::vector<std::vector<flash_plane_ID_type>> stream_plane_ids, unsigned int Block_no_per_plane,
     unsigned int Page_no_per_block, unsigned int SectorsPerPage, unsigned int PageSizeInByte,
     double Overprovisioning_ratio, CMT_Sharing_Mode sharing_mode, bool fold_large_addresses)
-    : Address_Mapping_Unit_Base(id, ftl, flash_controller, block_manager, ideal_mapping_table, concurrent_stream_no,
+    : Address_Mapping_Unit_Base(id, ftl, flash_controller, block_manager, ideal_mapping_table, io_flows_cnt,
                                 channel_count, chip_no_per_channel, die_no_per_chip, plane_no_per_die,
                                 Block_no_per_plane, Page_no_per_block, SectorsPerPage, PageSizeInByte,
                                 Overprovisioning_ratio, sharing_mode, fold_large_addresses) {
   _my_instance = this;
-  domains = new AddressMappingDomain*[no_of_input_streams];
+  domains = new AddressMappingDomain*[io_flows_cnt];
 
   Write_transactions_for_overfull_planes = new std::set<NVM_Transaction_Flash_WR*>***[channel_count];
-  for (unsigned int channel_id = 0; channel_id < channel_count; channel_id++) {
-    Write_transactions_for_overfull_planes[channel_id] = new std::set<NVM_Transaction_Flash_WR*>**[chip_no_per_channel];
-    for (unsigned int chip_id = 0; chip_id < chip_no_per_channel; chip_id++) {
-      Write_transactions_for_overfull_planes[channel_id][chip_id] =
-          new std::set<NVM_Transaction_Flash_WR*>*[die_no_per_chip];
-      for (unsigned int die_id = 0; die_id < die_no_per_chip; die_id++) {
-        Write_transactions_for_overfull_planes[channel_id][chip_id][die_id] =
-            new std::set<NVM_Transaction_Flash_WR*>[plane_no_per_die];
+  for (unsigned int C = 0; C < channel_count; C++) {
+    Write_transactions_for_overfull_planes[C] = new std::set<NVM_Transaction_Flash_WR*>**[chip_no_per_channel];
+    for (unsigned int W = 0; W < chip_no_per_channel; W++) {
+      Write_transactions_for_overfull_planes[C][W] = new std::set<NVM_Transaction_Flash_WR*>*[die_no_per_chip];
+      for (unsigned int D = 0; D < die_no_per_chip; D++) {
+        Write_transactions_for_overfull_planes[C][W][D] = new std::set<NVM_Transaction_Flash_WR*>[plane_no_per_die];
       }
     }
   }
@@ -317,16 +316,16 @@ Address_Mapping_Unit_Page_Level::Address_Mapping_Unit_Page_Level(
   flash_channel_ID_type* chip_ids = NULL;
   flash_channel_ID_type* die_ids = NULL;
   flash_channel_ID_type* plane_ids = NULL;
-  for (unsigned int domainID = 0; domainID < no_of_input_streams; domainID++) {
-    /* Since we want to have the same mapping table entry size for all streams,
-     * the entry size is calculated at this level and then pass it to the
-     * constructors of mapping domains entry size = sizeOf(lpa) + sizeOf(ppn) +
-     * sizeOf(bit vector that shows written sectors of a page)
-     */
+  for (unsigned int s = 0; s < io_flows_cnt; s++) {
+    // Since we want to have the same mapping table entry size for all streams, the entry size is calculated at this
+    // level and then pass it to the constructors of mapping domains
+    // entry size = sizeOf(lpa) + sizeOf(ppn) + sizeOf(bit vector that shows written sectors of a page)
+    // e.g., 26 + 26 + 32 => 11B
     CMT_entry_size = (unsigned int)std::ceil(((2 * std::log2(total_physical_pages_no)) + sector_no_per_page) / 8);
-    // In GTD we do not need to store lpa
-    GTD_entry_size = (unsigned int)std::ceil((std::log2(total_physical_pages_no) + sector_no_per_page) / 8);
-    no_of_translation_entries_per_page = (SectorsPerPage * SECTOR_SIZE_IN_BYTE) / GTD_entry_size;
+    // In GMT, we do not need to store lpa
+    // e.g., 26 + 32 => 8B
+    GMT_entry_size = (unsigned int)std::ceil((std::log2(total_physical_pages_no) + sector_no_per_page) / 8);
+    GMT_entries_per_page = PageSizeInByte / GMT_entry_size;
 
     Cached_Mapping_Table* sharedCMT = NULL;
     unsigned int per_stream_cmt_capacity = 0;
@@ -337,54 +336,52 @@ Address_Mapping_Unit_Page_Level::Address_Mapping_Unit_Page_Level(
         sharedCMT = new Cached_Mapping_Table(cmt_capacity);
         break;
       case CMT_Sharing_Mode::EQUAL_SIZE_PARTITIONING:
-        per_stream_cmt_capacity = cmt_capacity / no_of_input_streams;
+        per_stream_cmt_capacity = cmt_capacity / io_flows_cnt;
         break;
     }
 
-    channel_ids = new flash_channel_ID_type[stream_channel_ids[domainID].size()];
-    for (unsigned int i = 0; i < stream_channel_ids[domainID].size(); i++) {
-      if (stream_channel_ids[domainID][i] < channel_count) {
-        channel_ids[i] = stream_channel_ids[domainID][i];
+    channel_ids = new flash_channel_ID_type[stream_channel_ids[s].size()];
+    for (unsigned int i = 0; i < stream_channel_ids[s].size(); i++) {
+      if (stream_channel_ids[s][i] < channel_count) {
+        channel_ids[i] = stream_channel_ids[s][i];
       } else {
-        PRINT_ERROR("Invalid channel ID specified for I/O flow " << domainID);
+        PRINT_ERROR("Invalid channel ID specified for I/O flow " << s);
       }
     }
 
-    chip_ids = new flash_channel_ID_type[stream_chip_ids[domainID].size()];
-    for (unsigned int i = 0; i < stream_chip_ids[domainID].size(); i++) {
-      if (stream_chip_ids[domainID][i] < chip_no_per_channel) {
-        chip_ids[i] = stream_chip_ids[domainID][i];
+    chip_ids = new flash_channel_ID_type[stream_chip_ids[s].size()];
+    for (unsigned int i = 0; i < stream_chip_ids[s].size(); i++) {
+      if (stream_chip_ids[s][i] < chip_no_per_channel) {
+        chip_ids[i] = stream_chip_ids[s][i];
       } else {
-        PRINT_ERROR("Invalid chip ID specified for I/O flow " << domainID);
+        PRINT_ERROR("Invalid chip ID specified for I/O flow " << s);
       }
     }
 
-    die_ids = new flash_channel_ID_type[stream_die_ids[domainID].size()];
-    for (unsigned int i = 0; i < stream_die_ids[domainID].size(); i++) {
-      if (stream_die_ids[domainID][i] < die_no_per_chip) {
-        die_ids[i] = stream_die_ids[domainID][i];
+    die_ids = new flash_channel_ID_type[stream_die_ids[s].size()];
+    for (unsigned int i = 0; i < stream_die_ids[s].size(); i++) {
+      if (stream_die_ids[s][i] < die_no_per_chip) {
+        die_ids[i] = stream_die_ids[s][i];
       } else {
-        PRINT_ERROR("Invalid die ID specified for I/O flow " << domainID);
+        PRINT_ERROR("Invalid die ID specified for I/O flow " << s);
       }
     }
 
-    plane_ids = new flash_channel_ID_type[stream_plane_ids[domainID].size()];
-    for (unsigned int i = 0; i < stream_plane_ids[domainID].size(); i++) {
-      if (stream_plane_ids[domainID][i] < plane_no_per_die) {
-        plane_ids[i] = stream_plane_ids[domainID][i];
+    plane_ids = new flash_channel_ID_type[stream_plane_ids[s].size()];
+    for (unsigned int i = 0; i < stream_plane_ids[s].size(); i++) {
+      if (stream_plane_ids[s][i] < plane_no_per_die) {
+        plane_ids[i] = stream_plane_ids[s][i];
       } else {
-        PRINT_ERROR("Invalid plane ID specified for I/O flow " << domainID);
+        PRINT_ERROR("Invalid plane ID specified for I/O flow " << s);
       }
     }
 
-    domains[domainID] = new AddressMappingDomain(
-        per_stream_cmt_capacity, CMT_entry_size, no_of_translation_entries_per_page, sharedCMT, PlaneAllocationScheme,
-        channel_ids, (unsigned int)(stream_channel_ids[domainID].size()), chip_ids,
-        (unsigned int)(stream_chip_ids[domainID].size()), die_ids, (unsigned int)(stream_die_ids[domainID].size()),
-        plane_ids, (unsigned int)(stream_plane_ids[domainID].size()),
-        Utils::Logical_Address_Partitioning_Unit::PDA_count_allocate_to_flow(domainID),
-        Utils::Logical_Address_Partitioning_Unit::LHA_count_allocate_to_flow_from_device_view(domainID),
-        sector_no_per_page);
+    domains[s] = new AddressMappingDomain(
+        per_stream_cmt_capacity, CMT_entry_size, GMT_entries_per_page, sharedCMT, PlaneAllocationScheme, channel_ids,
+        (unsigned int)(stream_channel_ids[s].size()), chip_ids, (unsigned int)(stream_chip_ids[s].size()), die_ids,
+        (unsigned int)(stream_die_ids[s].size()), plane_ids, (unsigned int)(stream_plane_ids[s].size()),
+        Utils::Logical_Address_Partitioning_Unit::PDA_count_allocate_to_flow(s),
+        Utils::Logical_Address_Partitioning_Unit::LHA_count_allocate_to_flow_from_device_view(s), sector_no_per_page);
     delete[] channel_ids;
     delete[] chip_ids;
     delete[] die_ids;
@@ -393,7 +390,7 @@ Address_Mapping_Unit_Page_Level::Address_Mapping_Unit_Page_Level(
 }
 
 Address_Mapping_Unit_Page_Level::~Address_Mapping_Unit_Page_Level() {
-  for (unsigned int i = 0; i < no_of_input_streams; i++) {
+  for (unsigned int i = 0; i < io_flows_cnt; i++) {
     delete domains[i];
   }
   delete[] domains;
@@ -418,13 +415,15 @@ void Address_Mapping_Unit_Page_Level::Store_mapping_table_on_flash_at_start() {
   NVM_Transaction_Flash_WR* dummy_tr =
       new NVM_Transaction_Flash_WR(Transaction_Source_Type::MAPPING, 0, 0, NO_LPA, 0, NULL, 0, NULL, 0, 0);
 
-  for (unsigned int stream_id = 0; stream_id < no_of_input_streams; stream_id++) {
+  for (unsigned int stream_id = 0; stream_id < io_flows_cnt; stream_id++) {
     dummy_tr->Stream_id = stream_id;
-    for (MVPN_type translation_page_id = 0; translation_page_id < domains[stream_id]->Total_translation_pages_no;
-         translation_page_id++) {
-      dummy_tr->LPA = (LPA_type)translation_page_id;
-      allocate_plane_for_translation_write(dummy_tr);
-      allocate_page_in_plane_for_translation_write(dummy_tr, (MVPN_type)dummy_tr->LPA, false);
+    // Initializing GTD (in DRAM)
+    for (int i = 0; i < domains[stream_id]->total_GTD_entries; i++) {
+      dummy_tr->LPA = (LPA_type)i;  // LPA를
+      // allocate_plane_for_translation_write(dummy_tr); // 아래 함수랑 동일.
+      setup_plane_address(dummy_tr->Stream_id, (LPA_type)i, dummy_tr->Address);
+      // i: MVPN 개수만큼 있으니까.
+      allocate_page_in_plane_for_translation_write(dummy_tr, (MVPN_type)i, false);
       flash_controller->Change_flash_page_status_for_preconditioning(dummy_tr->Address, dummy_tr->LPA);
     }
   }
@@ -432,7 +431,7 @@ void Address_Mapping_Unit_Page_Level::Store_mapping_table_on_flash_at_start() {
 }
 
 int Address_Mapping_Unit_Page_Level::Bring_to_CMT_for_preconditioning(stream_id_type stream_id, LPA_type lpa) {
-  if (domains[stream_id]->GlobalMappingTable[lpa].PPA == NO_PPA) {
+  if (domains[stream_id]->GMT[lpa].PPA == NO_PPA) {
     PRINT_ERROR("Touching an unallocated logical address in preconditioning!")
   }
 
@@ -442,14 +441,14 @@ int Address_Mapping_Unit_Page_Level::Bring_to_CMT_for_preconditioning(stream_id_
 
   if (domains[stream_id]->CMT->Check_free_slot_availability()) {
     domains[stream_id]->CMT->Reserve_slot_for_lpn(stream_id, lpa);
-    domains[stream_id]->CMT->Insert_new_mapping_info(stream_id, lpa, domains[stream_id]->GlobalMappingTable[lpa].PPA,
-                                                     domains[stream_id]->GlobalMappingTable[lpa].WrittenStateBitmap);
+    domains[stream_id]->CMT->Insert_new_mapping_info(stream_id, lpa, domains[stream_id]->GMT[lpa].PPA,
+                                                     domains[stream_id]->GMT[lpa].WrittenStateBitmap);
   } else {
     LPA_type evicted_lpa;
     domains[stream_id]->CMT->Evict_one_slot(evicted_lpa);
     domains[stream_id]->CMT->Reserve_slot_for_lpn(stream_id, lpa);
-    domains[stream_id]->CMT->Insert_new_mapping_info(stream_id, lpa, domains[stream_id]->GlobalMappingTable[lpa].PPA,
-                                                     domains[stream_id]->GlobalMappingTable[lpa].WrittenStateBitmap);
+    domains[stream_id]->CMT->Insert_new_mapping_info(stream_id, lpa, domains[stream_id]->GMT[lpa].PPA,
+                                                     domains[stream_id]->GMT[lpa].WrittenStateBitmap);
   }
   domains[stream_id]->No_of_inserted_entries_in_preconditioning++;
 
@@ -540,7 +539,7 @@ bool Address_Mapping_Unit_Page_Level::query_cmt(NVM_Transaction_Flash* transacti
     if (translate_lpa_to_ppa(stream_id, transaction)) {
       return true;
     }
-    mange_unsuccessful_translation(transaction);  // 원본의 typo(mange) 유지
+    mange_unsuccessful_translation(transaction);
     return false;
   }
 
@@ -585,7 +584,7 @@ bool Address_Mapping_Unit_Page_Level::translate_lpa_to_ppa(stream_id_type stream
     block_manager->Read_transaction_issued(transaction->Address);
     transaction->Physical_address_determined = true;
 
-  } else {  // This is a write transaction
+  } else {  // WRITE
 
     // 1. plane address
     allocate_plane_for_user_write((NVM_Transaction_Flash_WR*)transaction);
@@ -625,11 +624,11 @@ void Address_Mapping_Unit_Page_Level::Allocate_address_for_preconditioning(
   // First: distribute LPAs to planes
   NVM::FlashMemory::Physical_Page_Address plane_address;
   for (auto lpa = lpa_list.begin(); lpa != lpa_list.end();) {
-    if ((*lpa).first >= domains[stream_id]->Total_logical_pages_no) {
+    if ((*lpa).first >= domains[stream_id]->total_logical_pages_no) {
       PRINT_ERROR(
           "Out of range LPA specified for preconditioning! LPA shoud be "
           "smaller than "
-          << domains[stream_id]->Total_logical_pages_no << ", but it is " << (*lpa).first)
+          << domains[stream_id]->total_logical_pages_no << ", but it is " << (*lpa).first)
     }
     PPA_type ppa = domains[stream_id]->Get_ppa_for_preconditioning(stream_id, (*lpa).first);
     if (ppa != NO_LPA) {
@@ -766,9 +765,9 @@ void Address_Mapping_Unit_Page_Level::Allocate_address_for_preconditioning(
                     .pop_back();
                 PPA_type ppa = Convert_address_to_ppa(address);
                 flash_controller->Change_memory_status_preconditioning(&address, &lpa);
-                domains[stream_id]->GlobalMappingTable[lpa].PPA = ppa;
-                domains[stream_id]->GlobalMappingTable[lpa].WrittenStateBitmap = (*lpa_list.find(lpa)).second;
-                domains[stream_id]->GlobalMappingTable[lpa].TimeStamp = 0;
+                domains[stream_id]->GMT[lpa].PPA = ppa;
+                domains[stream_id]->GMT[lpa].WrittenStateBitmap = (*lpa_list.find(lpa)).second;
+                domains[stream_id]->GMT[lpa].TimeStamp = 0;
               }
             }
           }
@@ -801,85 +800,73 @@ void Address_Mapping_Unit_Page_Level::Allocate_address_for_preconditioning(
 
 void Address_Mapping_Unit_Page_Level::Allocate_new_page_for_gc(NVM_Transaction_Flash_WR* transaction,
                                                                bool is_translation_page) {
+  stream_id_type s = transaction->Stream_id;
+  LPA_type lpa = transaction->LPA;
+  AddressMappingDomain* domain = domains[s];
+  Cached_Mapping_Table* cmt = domain->CMT;
+
   if (is_translation_page) {
-    MPPN_type mppn = domains[transaction->Stream_id]->GlobalTranslationDirectory[transaction->LPA].MPPN;
+    MPPN_type mppn = domain->GTD[lpa].MPPN;
     if (mppn == NO_MPPN) {
-      PRINT_ERROR(
-          "Unexpected situation occured for gc write in "
-          "Allocate_new_page_for_gc function!")
+      PRINT_ERROR("Unexpected situation occured for gc write in Allocate_new_page_for_gc function!")
     }
 
-    allocate_page_in_plane_for_translation_write(transaction, (MVPN_type)transaction->LPA, true);
-    transaction->Physical_address_determined = true;
+    allocate_page_in_plane_for_translation_write(transaction, (MVPN_type)lpa, true);
   } else {
-    if (!domains[transaction->Stream_id]->Mapping_entry_accessible(ideal_mapping_table, transaction->Stream_id,
-                                                                   transaction->LPA)) {
-      if (!domains[transaction->Stream_id]->CMT->Check_free_slot_availability()) {
+    // define lambda to avoid writing same logic
+    auto ensure_cmt_slot_availability = [&]() {
+      if (!cmt->Check_free_slot_availability()) {
         LPA_type evicted_lpa;
-        CMTSlotType evictedItem = domains[transaction->Stream_id]->CMT->Evict_one_slot(evicted_lpa);
+        CMTSlotType evictedItem = cmt->Evict_one_slot(evicted_lpa);
         if (evictedItem.Dirty) {
-          /* In order to eliminate possible race conditions for the requests
-           * that will access the evicted lpa in the near future (before the
-           * translation write finishes), MQSim updates GMT (the on flash
-           * mapping table) right after eviction happens.*/
-          domains[transaction->Stream_id]->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-          domains[transaction->Stream_id]->GlobalMappingTable[evicted_lpa].WrittenStateBitmap =
-              evictedItem.WrittenStateBitmap;
-          if (domains[transaction->Stream_id]->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp) {
+          // In order to eliminate possible race conditions for the requests that will access the evicted lpa in the near
+          // future (before the translation write finishes), 
+          // MQSim updates GMT (the on flash mapping table) right after eviction happens.
+          domain->GMT[evicted_lpa].PPA = evictedItem.PPA;
+          domain->GMT[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
+          if (domain->GMT[evicted_lpa].TimeStamp > CurrentTimeStamp) {
             throw std::logic_error("Unexpected situation occured in handling GMT!");
           }
-          domains[transaction->Stream_id]->GlobalMappingTable[evicted_lpa].TimeStamp = CurrentTimeStamp;
-          generate_flash_writeback_request_for_mapping_data(transaction->Stream_id, evicted_lpa);
+          domain->GMT[evicted_lpa].TimeStamp = CurrentTimeStamp;
+          generate_flash_writeback_request_for_mapping_data(s, evicted_lpa);
         }
       }
-      domains[transaction->Stream_id]->CMT->Reserve_slot_for_lpn(transaction->Stream_id, transaction->LPA);
-      domains[transaction->Stream_id]->CMT->Insert_new_mapping_info(transaction->Stream_id, transaction->LPA,
-                                                                    Convert_address_to_ppa(transaction->Address),
-                                                                    transaction->write_sectors_bitmap);
+      cmt->Reserve_slot_for_lpn(s, lpa);
+    };
+
+    if (!domain->Mapping_entry_accessible(ideal_mapping_table, s, lpa)) {
+      ensure_cmt_slot_availability();
+      cmt->Insert_new_mapping_info(s, lpa, Convert_address_to_ppa(transaction->Address),
+                                   transaction->write_sectors_bitmap);
     }
 
+    // page alloc
     allocate_page_in_plane_for_user_write(transaction, true);
-    transaction->Physical_address_determined = true;
 
     // the mapping entry should be updated
-    stream_id_type stream_id = transaction->Stream_id;
     Stats::total_CMT_queries++;
-    Stats::total_CMT_queries_per_stream[stream_id]++;
+    Stats::total_CMT_queries_per_stream[s]++;
 
     // either limited or unlimited mapping
-    if (domains[stream_id]->Mapping_entry_accessible(ideal_mapping_table, stream_id, transaction->LPA)) {
+    if (domain->Mapping_entry_accessible(ideal_mapping_table, s, lpa)) {
       Stats::CMT_hits++;
-      Stats::CMT_hits_per_stream[stream_id]++;
+      Stats::CMT_hits_per_stream[s]++;
       Stats::total_writeTR_CMT_queries++;
-      Stats::total_writeTR_CMT_queries_per_stream[stream_id]++;
+      Stats::total_writeTR_CMT_queries_per_stream[s]++;
       Stats::writeTR_CMT_hits++;
-      Stats::writeTR_CMT_hits_per_stream[stream_id]++;
-      domains[stream_id]->Update_mapping_info(ideal_mapping_table, stream_id, transaction->LPA, transaction->PPA,
-                                              transaction->write_sectors_bitmap);
-    } else {  // the else block only executed for non-ideal mapping table in
-              // which CMT has a limited capacity and mapping data is
-              // read/written from/to the flash storage
-      if (!domains[stream_id]->CMT->Check_free_slot_availability()) {
-        LPA_type evicted_lpa;
-        CMTSlotType evictedItem = domains[stream_id]->CMT->Evict_one_slot(evicted_lpa);
-        if (evictedItem.Dirty) {
-          /* In order to eliminate possible race conditions for the requests
-           * that will access the evicted lpa in the near future (before the
-           * translation write finishes), MQSim updates GMT (the on flash
-           * mapping table) right after eviction happens.*/
-          domains[stream_id]->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-          domains[stream_id]->GlobalMappingTable[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
-          if (domains[stream_id]->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp)
-            throw std::logic_error("Unexpected situation occured in handling GMT!");
-          domains[stream_id]->GlobalMappingTable[evicted_lpa].TimeStamp = CurrentTimeStamp;
-          generate_flash_writeback_request_for_mapping_data(stream_id, evicted_lpa);
-        }
-      }
-      domains[stream_id]->CMT->Reserve_slot_for_lpn(stream_id, transaction->LPA);
-      domains[stream_id]->CMT->Insert_new_mapping_info(stream_id, transaction->LPA, transaction->PPA,
-                                                       transaction->write_sectors_bitmap);
+      Stats::writeTR_CMT_hits_per_stream[s]++;
+      domain->Update_mapping_info(ideal_mapping_table, s, lpa, transaction->PPA, transaction->write_sectors_bitmap);
+    }
+    // the else block only executed for non-ideal mapping table in
+    // which CMT has a limited capacity and mapping data is
+    // read/written from/to the flash storage
+    else {
+      ensure_cmt_slot_availability();
+      cmt->Insert_new_mapping_info(s, lpa, transaction->PPA, transaction->write_sectors_bitmap);
     }
   }
+
+  transaction->Physical_address_determined = true;
 }
 
 // static allocation for LPA -> PPA
@@ -1191,7 +1178,7 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_user_write(NVM_
         NVM_Transaction_Flash_RD* update_read_tr = new NVM_Transaction_Flash_RD(
             transaction->Source, stream_id, count_sector_no_from_status_bitmap(sectors_to_read) * SECTOR_SIZE_IN_BYTE,
             lpa, old_ppa, transaction->UserIORequest, transaction->Content, transaction, sectors_to_read,
-            domain->GlobalMappingTable[lpa].TimeStamp);
+            domain->GMT[lpa].TimeStamp);
 
         Convert_ppa_to_address(old_ppa, update_read_tr->Address);
         // Inform block manager about a new transaction
@@ -1229,13 +1216,11 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_translation_wri
                                                                                    MVPN_type mvpn, bool is_for_gc) {
   AddressMappingDomain* domain = domains[transaction->Stream_id];
 
-  MPPN_type old_MPPN = domain->GlobalTranslationDirectory[mvpn].MPPN;
+  MPPN_type old_MPPN = domain->GTD[mvpn].MPPN;
   /*this is the first access to the mvpn*/
   if (old_MPPN == NO_MPPN) {
     if (is_for_gc) {
-      PRINT_ERROR(
-          "Unexpected mapping table status in "
-          "allocate_page_in_plane_for_translation_write for a GC/WL write!")
+      PRINT_ERROR("Unexpected mapping table status in allocate_page_in_plane_for_translation_write for a GC/WL write!")
     }
   } else {
     NVM::FlashMemory::Physical_Page_Address prevAddr;
@@ -1246,8 +1231,8 @@ void Address_Mapping_Unit_Page_Level::allocate_page_in_plane_for_translation_wri
   block_manager->Allocate_block_and_page_in_plane_for_translation_write(transaction->Stream_id, transaction->Address,
                                                                         false);
   transaction->PPA = Convert_address_to_ppa(transaction->Address);
-  domain->GlobalTranslationDirectory[mvpn].MPPN = (MPPN_type)transaction->PPA;
-  domain->GlobalTranslationDirectory[mvpn].TimeStamp = CurrentTimeStamp;
+  domain->GTD[mvpn].MPPN = (MPPN_type)transaction->PPA;
+  domain->GTD[mvpn].TimeStamp = CurrentTimeStamp;
 }
 
 // lpa input. (not ppa)
@@ -1275,34 +1260,32 @@ inline void Address_Mapping_Unit_Page_Level::Get_data_mapping_info_for_gc(const 
     ppa = domains[stream_id]->Get_ppa(ideal_mapping_table, stream_id, lpa);
     page_state = domains[stream_id]->Get_page_status(ideal_mapping_table, stream_id, lpa);
   } else {
-    ppa = domains[stream_id]->GlobalMappingTable[lpa].PPA;
-    page_state = domains[stream_id]->GlobalMappingTable[lpa].WrittenStateBitmap;
+    ppa = domains[stream_id]->GMT[lpa].PPA;
+    page_state = domains[stream_id]->GMT[lpa].WrittenStateBitmap;
   }
 }
 
 inline void Address_Mapping_Unit_Page_Level::Get_translation_mapping_info_for_gc(const stream_id_type stream_id,
                                                                                  const MVPN_type mvpn, MPPN_type& mppa,
                                                                                  sim_time_type& timestamp) {
-  mppa = domains[stream_id]->GlobalTranslationDirectory[mvpn].MPPN;
-  timestamp = domains[stream_id]->GlobalTranslationDirectory[mvpn].TimeStamp;
+  mppa = domains[stream_id]->GTD[mvpn].MPPN;
+  timestamp = domains[stream_id]->GTD[mvpn].TimeStamp;
 }
 
 inline MVPN_type Address_Mapping_Unit_Page_Level::get_MVPN(const LPA_type lpn, stream_id_type stream_id) {
-  // return (MVPN_type)((lpn % (domains[stream_id]->Total_logical_pages_no)) /
-  // no_of_translation_entries_per_page);
-  return (MVPN_type)(lpn / no_of_translation_entries_per_page);
+  return (MVPN_type)(lpn / GMT_entries_per_page);
 }
 
-inline LPA_type Address_Mapping_Unit_Page_Level::get_start_LPN_in_MVP(const MVPN_type mvpn) {
-  return (MVPN_type)(mvpn * no_of_translation_entries_per_page);
+inline LPA_type Address_Mapping_Unit_Page_Level::get_start_LPN(const MVPN_type mvpn) {
+  return (MVPN_type)(mvpn * GMT_entries_per_page);
 }
 
-inline LPA_type Address_Mapping_Unit_Page_Level::get_end_LPN_in_MVP(const MVPN_type mvpn) {
-  return (MVPN_type)(mvpn * no_of_translation_entries_per_page + no_of_translation_entries_per_page - 1);
+inline LPA_type Address_Mapping_Unit_Page_Level::get_end_LPN(const MVPN_type mvpn) {
+  return (MVPN_type)(mvpn * GMT_entries_per_page + GMT_entries_per_page - 1);
 }
 
 LPA_type Address_Mapping_Unit_Page_Level::Get_logical_pages_count(stream_id_type stream_id) {
-  return this->domains[stream_id]->Total_logical_pages_no;
+  return this->domains[stream_id]->total_logical_pages_no;
 }
 
 inline NVM::FlashMemory::Physical_Page_Address Address_Mapping_Unit_Page_Level::Convert_ppa_to_address(
@@ -1348,61 +1331,52 @@ inline PPA_type Address_Mapping_Unit_Page_Level::Convert_address_to_ppa(
 
 bool Address_Mapping_Unit_Page_Level::request_mapping_entry(const stream_id_type stream_id, const LPA_type lpa) {
   AddressMappingDomain* domain = domains[stream_id];
+  Cached_Mapping_Table* cmt = domain->CMT;
   MVPN_type mvpn = get_MVPN(lpa, stream_id);
 
-  /*This is the first time that a user request accesses this address.
-  Just create an entry in cache! No flash read is needed.*/
-  if (domain->GlobalTranslationDirectory[mvpn].MPPN == NO_MPPN) {
-    if (!domain->CMT->Check_free_slot_availability()) {
+  // define lambda to avoid writing same logic
+  auto ensure_cmt_slot_availability = [&]() {
+    if (!cmt->Check_free_slot_availability()) {
       LPA_type evicted_lpa;
-      CMTSlotType evictedItem = domain->CMT->Evict_one_slot(evicted_lpa);
+      CMTSlotType evictedItem = cmt->Evict_one_slot(evicted_lpa); // pick LRU
       if (evictedItem.Dirty) {
-        /* In order to eliminate possible race conditions for the requests that
-         * will access the evicted lpa in the near future (before the
-         * translation write finishes), MQSim updates GMT (the on flash mapping
-         * table) right after eviction happens.*/
-        domain->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-        domain->GlobalMappingTable[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
-        if (domain->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp)
-          throw std::logic_error("Unexpected situation occurred in handling GMT!");
-        domain->GlobalMappingTable[evicted_lpa].TimeStamp = CurrentTimeStamp;
+        // In order to eliminate possible race conditions for the requests that will access the evicted lpa in the near
+        // future (before the translation write finishes), 
+        // MQSim updates GMT (the on flash mapping table) right after eviction happens.
+        domain->GMT[evicted_lpa].PPA = evictedItem.PPA;
+        domain->GMT[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
+        if (domain->GMT[evicted_lpa].TimeStamp > CurrentTimeStamp) {
+          throw std::logic_error("Unexpected situation occured in handling GMT!");
+        }
+        domain->GMT[evicted_lpa].TimeStamp = CurrentTimeStamp;
         generate_flash_writeback_request_for_mapping_data(stream_id, evicted_lpa);
       }
     }
-    domain->CMT->Reserve_slot_for_lpn(stream_id, lpa);
-    domain->CMT->Insert_new_mapping_info(stream_id, lpa, NO_PPA, UNWRITTEN_LOGICAL_PAGE);
+    cmt->Reserve_slot_for_lpn(stream_id, lpa);
+  };
+
+  /*This is the first time that a user request accesses this address.
+  Just create an entry in cache! No flash read is needed.*/
+  if (domain->GTD[mvpn].MPPN == NO_MPPN) {
+    ensure_cmt_slot_availability();
+    cmt->Insert_new_mapping_info(stream_id, lpa, NO_PPA, UNWRITTEN_LOGICAL_PAGE);
 
     return true;
   }
 
-  /* A read transaction is already under process to retrieve the MVP content.
+  /* A read transaction is already under process to retrieve the Mapping Virtual Page (MVP) content.
+   *
    * This situation may happen in two different cases:
    * 1. A read has been issued to retrieve unchanged parts of the mapping data
-   * and merge them with the changed parts (i.e., an update read of MVP). This
-   * read will be followed by a writeback of MVP content to a new flash page.
-   * 2. A read has been issued to retrieve the mapping data for some previous
-   * user requests*/
+   * and merge them with the changed parts (i.e., an update read of MVP).
+   * This read will be followed by a writeback of MVP content to a new flash page.
+   * 2. A read has been issued to retrieve the mapping data for some previous user requests
+   **/
   if (domain->ArrivingMappingEntries.find(mvpn) != domain->ArrivingMappingEntries.end()) {
-    if (domain->CMT->Is_slot_reserved_for_lpn_and_waiting(stream_id, lpa)) {
+    if (cmt->Is_slot_reserved_for_lpn_and_waiting(stream_id, lpa)) {
       return false;
     } else {  // An entry should be created in the cache
-      if (!domain->CMT->Check_free_slot_availability()) {
-        LPA_type evicted_lpa;
-        CMTSlotType evictedItem = domain->CMT->Evict_one_slot(evicted_lpa);
-        if (evictedItem.Dirty) {
-          /* In order to eliminate possible race conditions for the requests
-           * that will access the evicted lpa in the near future (before the
-           * translation write finishes), MQSim updates GMT (the on flash
-           * mapping table) right after eviction happens.*/
-          domain->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-          domain->GlobalMappingTable[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
-          if (domain->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp)
-            throw std::logic_error("Unexpected situation occured in handling GMT!");
-          domain->GlobalMappingTable[evicted_lpa].TimeStamp = CurrentTimeStamp;
-          generate_flash_writeback_request_for_mapping_data(stream_id, evicted_lpa);
-        }
-      }
-      domain->CMT->Reserve_slot_for_lpn(stream_id, lpa);
+      ensure_cmt_slot_availability();
       domain->ArrivingMappingEntries.insert(std::pair<MVPN_type, LPA_type>(mvpn, lpa));
 
       return false;
@@ -1413,52 +1387,18 @@ bool Address_Mapping_Unit_Page_Level::request_mapping_entry(const stream_id_type
   pages are in memory, until the flash program operation finishes and the entry
   it is cleared from DepartingMappingEntries.*/
   if (domain->DepartingMappingEntries.find(mvpn) != domain->DepartingMappingEntries.end()) {
-    if (!domain->CMT->Check_free_slot_availability()) {
-      LPA_type evicted_lpa;
-      CMTSlotType evictedItem = domain->CMT->Evict_one_slot(evicted_lpa);
-      if (evictedItem.Dirty) {
-        /* In order to eliminate possible race conditions for the requests that
-         * will access the evicted lpa in the near future (before the
-         * translation write finishes), MQSim updates GMT (the on flash mapping
-         * table) right after eviction happens.*/
-        domain->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-        domain->GlobalMappingTable[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
-        if (domain->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp)
-          throw std::logic_error("Unexpected situation occured in handling GMT!");
-        domain->GlobalMappingTable[lpa].TimeStamp = CurrentTimeStamp;
-        generate_flash_writeback_request_for_mapping_data(stream_id, evicted_lpa);
-      }
-    }
-    domain->CMT->Reserve_slot_for_lpn(stream_id, lpa);
+    ensure_cmt_slot_availability();
     /*Hack: since we do not actually save the values of translation requests, we
     copy the mapping data from GlobalMappingTable (which actually must be stored
     on flash)*/
-    domain->CMT->Insert_new_mapping_info(stream_id, lpa, domain->GlobalMappingTable[lpa].PPA,
-                                         domain->GlobalMappingTable[lpa].WrittenStateBitmap);
+    cmt->Insert_new_mapping_info(stream_id, lpa, domain->GMT[lpa].PPA, domain->GMT[lpa].WrittenStateBitmap);
 
     return true;
   }
 
   // Non of the above options provide mapping data. So, MQSim, must read the
   // translation data from flash memory
-  if (!domain->CMT->Check_free_slot_availability()) {
-    LPA_type evicted_lpa;
-    CMTSlotType evictedItem = domain->CMT->Evict_one_slot(evicted_lpa);
-    if (evictedItem.Dirty) {
-      /* In order to eliminate possible race conditions for the requests that
-       * will access the evicted lpa in the near future (before the translation
-       * write finishes), MQSim updates GMT (the on flash mapping table) right
-       * after eviction happens.*/
-      domain->GlobalMappingTable[evicted_lpa].PPA = evictedItem.PPA;
-      domain->GlobalMappingTable[evicted_lpa].WrittenStateBitmap = evictedItem.WrittenStateBitmap;
-      if (domain->GlobalMappingTable[evicted_lpa].TimeStamp > CurrentTimeStamp) {
-        throw std::logic_error("Unexpected situation occured in handling GMT!");
-      }
-      domain->GlobalMappingTable[evicted_lpa].TimeStamp = CurrentTimeStamp;
-      generate_flash_writeback_request_for_mapping_data(stream_id, evicted_lpa);
-    }
-  }
-  domain->CMT->Reserve_slot_for_lpn(stream_id, lpa);
+  ensure_cmt_slot_availability();
   generate_flash_read_request_for_mapping_data(stream_id, lpa);  // consult GTD and create read transaction
 
   return false;
@@ -1473,21 +1413,19 @@ void Address_Mapping_Unit_Page_Level::generate_flash_writeback_request_for_mappi
   } else {
     ftl->TSU->Prepare_for_transaction_submit();
 
-    // Writing back all dirty CMT entries that fall into the same translation
-    // virtual page (MVPN)
+    // Writing back all dirty CMT entries that fall into the same translation virtual page (MVPN)
     unsigned int read_size = 0;
     page_status_type readSectorsBitmap = 0;
-    LPA_type startLPN = get_start_LPN_in_MVP(mvpn);
-    LPA_type endLPN = get_end_LPN_in_MVP(mvpn);
+    LPA_type startLPN = get_start_LPN(mvpn);
+    LPA_type endLPN = get_end_LPN(mvpn);
     for (LPA_type lpn_itr = startLPN; lpn_itr <= endLPN; lpn_itr++) {
       if (domains[stream_id]->CMT->Exists(stream_id, lpn_itr)) {
         if (domains[stream_id]->CMT->Is_dirty(stream_id, lpn_itr)) {
           domains[stream_id]->CMT->Make_clean(stream_id, lpn_itr);
-          domains[stream_id]->GlobalMappingTable[lpn_itr].PPA =
-              domains[stream_id]->CMT->Retrieve_ppa(stream_id, lpn_itr);
+          domains[stream_id]->GMT[lpn_itr].PPA = domains[stream_id]->CMT->Retrieve_ppa(stream_id, lpn_itr);
         } else {
           page_status_type bitlocation =
-              (((page_status_type)0x1) << (((lpn_itr - startLPN) * GTD_entry_size) / SECTOR_SIZE_IN_BYTE));
+              (((page_status_type)0x1) << (((lpn_itr - startLPN) * GMT_entry_size) / SECTOR_SIZE_IN_BYTE));
           if ((readSectorsBitmap & bitlocation) == 0) {
             readSectorsBitmap |= bitlocation;
             read_size += SECTOR_SIZE_IN_BYTE;
@@ -1496,16 +1434,15 @@ void Address_Mapping_Unit_Page_Level::generate_flash_writeback_request_for_mappi
       }
     }
 
-    // Read the unchaged mapping entries from flash to merge them with updated
-    // parts of MVPN
+    // Read the unchaged mapping entries from flash to merge them with updated parts of MVPN
     NVM_Transaction_Flash_RD* readTR = NULL;
-    MPPN_type mppn = domains[stream_id]->GlobalTranslationDirectory[mvpn].MPPN;
+    MPPN_type mppn = domains[stream_id]->GTD[mvpn].MPPN;
     if (mppn != NO_MPPN) {
       readTR = new NVM_Transaction_Flash_RD(Transaction_Source_Type::MAPPING, stream_id, read_size, mvpn, mppn, NULL,
                                             mvpn, NULL, readSectorsBitmap, CurrentTimeStamp);
       Convert_ppa_to_address(mppn, readTR->Address);
-      block_manager->Read_transaction_issued(readTR->Address);  // Inform block_manager as soon as the
-                                                                // transaction's target address is determined
+      // Inform block_manager as soon as the transaction's target address is determined
+      block_manager->Read_transaction_issued(readTR->Address);
       domains[stream_id]->ArrivingMappingEntries.insert(std::pair<MVPN_type, LPA_type>(mvpn, lpn));
       ftl->TSU->Submit_transaction(readTR);
     }
@@ -1531,7 +1468,7 @@ void Address_Mapping_Unit_Page_Level::generate_flash_read_request_for_mapping_da
                                                                                    const LPA_type lpn) {
   MVPN_type mvpn = get_MVPN(lpn, stream_id);
 
-  if (mvpn >= domains[stream_id]->Total_translation_pages_no) {
+  if (mvpn >= domains[stream_id]->total_GTD_entries) {
     PRINT_ERROR("Out of range virtual translation page number!")
   }
 
@@ -1542,20 +1479,19 @@ void Address_Mapping_Unit_Page_Level::generate_flash_read_request_for_mapping_da
   } else {
     ftl->TSU->Prepare_for_transaction_submit();
 
-    PPA_type ppn = domains[stream_id]->GlobalTranslationDirectory[mvpn].MPPN;
+    PPA_type ppn = domains[stream_id]->GTD[mvpn].MPPN;
 
     if (ppn == NO_MPPN) {
       PRINT_ERROR(
-          "Reading an invalid physical flash page address in function "
-          "generate_flash_read_request_for_mapping_data!")
+          "Reading an invalid physical flash page address in function generate_flash_read_request_for_mapping_data!")
     }
 
     NVM_Transaction_Flash_RD* readTR =
         new NVM_Transaction_Flash_RD(Transaction_Source_Type::MAPPING, stream_id, SECTOR_SIZE_IN_BYTE, NO_LPA, NO_PPA,
                                      NULL, mvpn, ((page_status_type)0x1) << sector_no_per_page, CurrentTimeStamp);
     Convert_ppa_to_address(ppn, readTR->Address);
-    block_manager->Read_transaction_issued(readTR->Address);  // Inform block_manager as soon as the transaction's
-                                                              // target address is determined
+    // Inform block_manager as soon as the transaction's target address is determined
+    block_manager->Read_transaction_issued(readTR->Address);
     readTR->PPA = ppn;
     ftl->TSU->Submit_transaction(readTR);
 
@@ -1574,9 +1510,7 @@ inline void Address_Mapping_Unit_Page_Level::handle_transaction_serviced_signal_
   }
 
   if (_my_instance->ideal_mapping_table) {
-    throw std::logic_error(
-        "There should not be any flash read/write when ideal mapping is "
-        "enabled!");
+    throw std::logic_error("There should not be any flash read/write when ideal mapping is enabled!");
   }
 
   if (transaction->Type == Transaction_Type::WRITE) {
@@ -1604,8 +1538,8 @@ inline void Address_Mapping_Unit_Page_Level::handle_transaction_serviced_signal_
         if (_my_instance->domains[transaction->Stream_id]->CMT->Is_slot_reserved_for_lpn_and_waiting(
                 transaction->Stream_id, lpa)) {
           _my_instance->domains[transaction->Stream_id]->CMT->Insert_new_mapping_info(
-              transaction->Stream_id, lpa, _my_instance->domains[transaction->Stream_id]->GlobalMappingTable[lpa].PPA,
-              _my_instance->domains[transaction->Stream_id]->GlobalMappingTable[lpa].WrittenStateBitmap);
+              transaction->Stream_id, lpa, _my_instance->domains[transaction->Stream_id]->GMT[lpa].PPA,
+              _my_instance->domains[transaction->Stream_id]->GMT[lpa].WrittenStateBitmap);
           auto it2 = _my_instance->domains[transaction->Stream_id]->Waiting_unmapped_read_transactions.find(lpa);
           while (it2 != _my_instance->domains[transaction->Stream_id]->Waiting_unmapped_read_transactions.end() &&
                  (*it2).first == lpa) {
@@ -1687,7 +1621,7 @@ inline void Address_Mapping_Unit_Page_Level::Set_barrier_for_accessing_physical_
       if (block->Holds_mapping_data) {
         MVPN_type mpvn = (MVPN_type)flash_controller->Get_metadata(addr.ChannelID, addr.ChipID, addr.DieID,
                                                                    addr.PlaneID, addr.BlockID, addr.PageID);
-        if (domains[block->Stream_id]->GlobalTranslationDirectory[mpvn].MPPN != Convert_address_to_ppa(addr)) {
+        if (domains[block->Stream_id]->GTD[mpvn].MPPN != Convert_address_to_ppa(addr)) {
           PRINT_ERROR(
               "Inconsistency in the global translation directory when locking "
               "an MPVN!")
@@ -1696,7 +1630,7 @@ inline void Address_Mapping_Unit_Page_Level::Set_barrier_for_accessing_physical_
       } else {
         LPA_type lpa = flash_controller->Get_metadata(addr.ChannelID, addr.ChipID, addr.DieID, addr.PlaneID,
                                                       addr.BlockID, addr.PageID);
-        LPA_type ppa = domains[block->Stream_id]->GlobalMappingTable[lpa].PPA;
+        LPA_type ppa = domains[block->Stream_id]->GMT[lpa].PPA;
         if (domains[block->Stream_id]->CMT->Exists(block->Stream_id, lpa)) {
           ppa = domains[block->Stream_id]->CMT->Retrieve_ppa(block->Stream_id, lpa);
         }
@@ -1754,7 +1688,7 @@ inline void Address_Mapping_Unit_Page_Level::Remove_barrier_for_accessing_mvpn(s
   if (domains[stream_id]->MVPN_read_transactions_waiting_behind_barrier.find(mvpn) !=
       domains[stream_id]->MVPN_read_transactions_waiting_behind_barrier.end()) {
     domains[stream_id]->MVPN_read_transactions_waiting_behind_barrier.erase(mvpn);
-    PPA_type ppn = domains[stream_id]->GlobalTranslationDirectory[mvpn].MPPN;
+    PPA_type ppn = domains[stream_id]->GTD[mvpn].MPPN;
     if (ppn == NO_MPPN) {
       PRINT_ERROR(
           "Reading an invalid physical flash page address in function "
@@ -1785,15 +1719,15 @@ inline void Address_Mapping_Unit_Page_Level::Remove_barrier_for_accessing_mvpn(s
     // virtual page (MVPN)
     unsigned int read_size = 0;
     page_status_type readSectorsBitmap = 0;
-    LPA_type start_lpn = get_start_LPN_in_MVP(mvpn);
-    LPA_type end_lpn = get_end_LPN_in_MVP(mvpn);
+    LPA_type start_lpn = get_start_LPN(mvpn);
+    LPA_type end_lpn = get_end_LPN(mvpn);
     for (LPA_type lpn_itr = start_lpn; lpn_itr <= end_lpn; lpn_itr++) {
       if (domains[stream_id]->CMT->Exists(stream_id, lpn_itr)) {
         if (domains[stream_id]->CMT->Is_dirty(stream_id, lpn_itr)) {
           domains[stream_id]->CMT->Make_clean(stream_id, lpn_itr);
         } else {
           page_status_type bitlocation =
-              (((page_status_type)0x1) << (((lpn_itr - start_lpn) * GTD_entry_size) / SECTOR_SIZE_IN_BYTE));
+              (((page_status_type)0x1) << (((lpn_itr - start_lpn) * GMT_entry_size) / SECTOR_SIZE_IN_BYTE));
           if ((readSectorsBitmap & bitlocation) == 0) {
             readSectorsBitmap |= bitlocation;
             read_size += SECTOR_SIZE_IN_BYTE;
@@ -1804,7 +1738,7 @@ inline void Address_Mapping_Unit_Page_Level::Remove_barrier_for_accessing_mvpn(s
 
     // Read the unchaged mapping entries from flash to merge them with updated
     // parts of MVPN
-    MPPN_type mppn = domains[stream_id]->GlobalTranslationDirectory[mvpn].MPPN;
+    MPPN_type mppn = domains[stream_id]->GTD[mvpn].MPPN;
     NVM_Transaction_Flash_WR* writeTR = new NVM_Transaction_Flash_WR(
         Transaction_Source_Type::MAPPING, stream_id, SECTOR_SIZE_IN_BYTE * sector_no_per_page, mvpn, mppn, NULL, mvpn,
         NULL, (((page_status_type)0x1) << sector_no_per_page) - 1, CurrentTimeStamp);
